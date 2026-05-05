@@ -22,6 +22,11 @@ const initDB = () => {
       gender TEXT,
       age_text TEXT,
       is_neutered TEXT,
+      personality TEXT,
+      allergies TEXT,
+      special_needs TEXT,
+      weight TEXT,
+      photo_uri TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -45,6 +50,14 @@ const initDB = () => {
       completed_at TEXT DEFAULT (datetime('now'))
     );
   `);
+
+  // Migration: add new columns to existing pets table
+  const cols = db.getAllSync<{ name: string }>("PRAGMA table_info(pets)").map((c) => c.name);
+  if (!cols.includes('personality')) db.execSync("ALTER TABLE pets ADD COLUMN personality TEXT");
+  if (!cols.includes('allergies')) db.execSync("ALTER TABLE pets ADD COLUMN allergies TEXT");
+  if (!cols.includes('special_needs')) db.execSync("ALTER TABLE pets ADD COLUMN special_needs TEXT");
+  if (!cols.includes('weight')) db.execSync("ALTER TABLE pets ADD COLUMN weight TEXT");
+  if (!cols.includes('photo_uri')) db.execSync("ALTER TABLE pets ADD COLUMN photo_uri TEXT");
 };
 
 const seedDB = () => {

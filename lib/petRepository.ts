@@ -8,6 +8,11 @@ export type Pet = {
   gender: 'male' | 'female' | 'unknown' | '';
   age_text: string;
   is_neutered: 'yes' | 'no' | '';
+  personality: string;
+  allergies: string;
+  special_needs: string;
+  weight: string;
+  photo_uri: string;
   created_at: string;
 };
 
@@ -18,14 +23,19 @@ export type PetDraft = {
   gender: 'male' | 'female' | 'unknown' | '';
   ageText: string;
   isNeutered: 'yes' | 'no' | '';
+  personality: string;
+  allergies: string;
+  specialNeeds: string;
+  weight: string;
+  photoUri: string;
 };
 
 export const petRepository = {
   save(pet: PetDraft): number {
     const db = getDB();
     db.runSync(
-      'INSERT INTO pets (name, pet_type, breed, gender, age_text, is_neutered) VALUES (?, ?, ?, ?, ?, ?)',
-      [pet.name, pet.petType, pet.breed, pet.gender, pet.ageText, pet.isNeutered]
+      'INSERT INTO pets (name, pet_type, breed, gender, age_text, is_neutered, personality, allergies, special_needs, weight, photo_uri) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [pet.name, pet.petType, pet.breed, pet.gender, pet.ageText, pet.isNeutered, pet.personality, pet.allergies, pet.specialNeeds, pet.weight, pet.photoUri]
     );
     const result = db.getFirstSync<{ id: number }>('SELECT last_insert_rowid() as id');
     return result!.id;
@@ -62,8 +72,8 @@ export const petRepository = {
   update(id: number, pet: PetDraft): void {
     const db = getDB();
     db.runSync(
-      'UPDATE pets SET name = ?, pet_type = ?, breed = ?, gender = ?, age_text = ?, is_neutered = ? WHERE id = ?',
-      [pet.name, pet.petType, pet.breed, pet.gender, pet.ageText, pet.isNeutered, id]
+      'UPDATE pets SET name = ?, pet_type = ?, breed = ?, gender = ?, age_text = ?, is_neutered = ?, personality = ?, allergies = ?, special_needs = ?, weight = ?, photo_uri = ? WHERE id = ?',
+      [pet.name, pet.petType, pet.breed, pet.gender, pet.ageText, pet.isNeutered, pet.personality, pet.allergies, pet.specialNeeds, pet.weight, pet.photoUri, id]
     );
   },
 };

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { petRepository, Pet } from '@/lib/petRepository';
@@ -35,15 +35,20 @@ export default function MineScreen() {
   const renderPet = ({ item }: { item: Pet }) => (
     <Card style={styles.petCard}>
       <View style={styles.petRow}>
-        <View style={[styles.petIcon, { backgroundColor: colors.primaryLight }]}>
-          <MaterialCommunityIcons name={item.pet_type === 'cat' ? 'cat' : 'dog'} size={24} color={colors.primary} />
-        </View>
+        {item.photo_uri ? (
+          <Image source={{ uri: item.photo_uri }} style={styles.petPhoto} />
+        ) : (
+          <View style={[styles.petIcon, { backgroundColor: colors.primaryLight }]}>
+            <MaterialCommunityIcons name={item.pet_type === 'cat' ? 'cat' : 'dog'} size={24} color={colors.primary} />
+          </View>
+        )}
         <View style={styles.petInfo}>
           <Text style={styles.petName}>{item.name}</Text>
           <Text style={styles.petMeta}>
             {item.breed || (item.pet_type === 'cat' ? '猫' : '狗')}
             {item.gender === 'male' ? ' · 公' : item.gender === 'female' ? ' · 母' : ''}
             {item.age_text ? ` · ${item.age_text}` : ''}
+            {item.weight ? ` · ${item.weight}kg` : ''}
           </Text>
         </View>
         <TouchableOpacity onPress={() => router.push({ pathname: '/add-pet', params: { petId: String(item.id) } })} style={styles.editBtn}>
@@ -51,6 +56,19 @@ export default function MineScreen() {
         </TouchableOpacity>
         <TouchableOpacity onPress={() => handleDelete(item)} style={styles.deleteBtn}>
           <MaterialCommunityIcons name="delete-outline" size={20} color={colors.error} />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.petDetails}>
+        {item.personality ? <Text style={styles.petDetailText}>性格：{item.personality}</Text> : null}
+        {item.allergies ? <Text style={styles.petDetailText}>过敏：{item.allergies}</Text> : null}
+        {item.special_needs ? <Text style={styles.petDetailText}>特殊需求：{item.special_needs}</Text> : null}
+        <TouchableOpacity
+          style={styles.dietBtn}
+          onPress={() => router.push({ pathname: '/diet-guide', params: { petType: item.pet_type, petName: item.name } })}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons name="food-apple-outline" size={16} color={colors.primary} />
+          <Text style={styles.dietBtnText}>饮食指南</Text>
         </TouchableOpacity>
       </View>
     </Card>
@@ -113,9 +131,25 @@ const styles = StyleSheet.create({
   petCard: { marginBottom: spacing.sm },
   petRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   petIcon: { width: 48, height: 48, borderRadius: borderRadius.full, justifyContent: 'center', alignItems: 'center' },
+  petPhoto: { width: 48, height: 48, borderRadius: borderRadius.full },
   petInfo: { flex: 1 },
   petName: { fontSize: 16, fontWeight: '700', color: colors.text },
   petMeta: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
   editBtn: { padding: spacing.sm },
   deleteBtn: { padding: spacing.sm },
+  petDetails: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    gap: 4,
+  },
+  petDetailText: { fontSize: 12, color: colors.textSecondary },
+  dietBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: spacing.xs,
+  },
+  dietBtnText: { fontSize: 13, fontWeight: '600', color: colors.primary },
 });
