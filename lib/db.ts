@@ -51,6 +51,22 @@ const initDB = () => {
     );
   `);
 
+  // Mood tracking table
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS mood_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pet_id INTEGER NOT NULL,
+      mood TEXT NOT NULL,
+      energy_level TEXT,
+      appetite TEXT,
+      behavior TEXT,
+      note TEXT,
+      recorded_at TEXT DEFAULT (datetime('now')),
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (pet_id) REFERENCES pets(id)
+    );
+  `);
+
   // Migration: add new columns to existing pets table
   const cols = db.getAllSync<{ name: string }>("PRAGMA table_info(pets)").map((c) => c.name);
   if (!cols.includes('personality')) db.execSync("ALTER TABLE pets ADD COLUMN personality TEXT");

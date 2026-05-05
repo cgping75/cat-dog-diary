@@ -6,7 +6,7 @@ import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository, PetRecord } from '@/lib/recordRepository';
 import { quizRepository } from '@/lib/quizRepository';
 import { colors, borderRadius, spacing } from '@/lib/theme';
-import { daysBetween, formatDate, VACCINE_INTERVAL_DAYS, DEWORM_INTERVAL_DAYS, CHECKUP_INTERVAL_DAYS, DENTAL_INTERVAL_DAYS } from '@/lib/dateUtils';
+import { daysBetween, formatDate, VACCINE_INTERVAL_DAYS, DEWORM_INTERVAL_DAYS, CHECKUP_INTERVAL_DAYS, DENTAL_INTERVAL_DAYS, BATH_INTERVAL_DAYS, GROOMING_INTERVAL_DAYS, NAIL_INTERVAL_DAYS } from '@/lib/dateUtils';
 import Card from '@/components/Card';
 import PetSwitcher from '@/components/PetSwitcher';
 import EmptyState from '@/components/EmptyState';
@@ -19,6 +19,9 @@ export default function PlanScreen() {
   const [latestDeworm, setLatestDeworm] = useState<PetRecord | null>(null);
   const [latestCheckup, setLatestCheckup] = useState<PetRecord | null>(null);
   const [latestDental, setLatestDental] = useState<PetRecord | null>(null);
+  const [latestBath, setLatestBath] = useState<PetRecord | null>(null);
+  const [latestGrooming, setLatestGrooming] = useState<PetRecord | null>(null);
+  const [latestNail, setLatestNail] = useState<PetRecord | null>(null);
 
   const loadData = useCallback(() => {
     const allPets = petRepository.getAll();
@@ -41,12 +44,24 @@ export default function PlanScreen() {
 
       const dentals = recordRepository.getByPetIdAndType(targetId, 'dental');
       setLatestDental(dentals.length > 0 ? dentals[0] : null);
+
+      const baths = recordRepository.getByPetIdAndType(targetId, 'bath');
+      setLatestBath(baths.length > 0 ? baths[0] : null);
+
+      const groomings = recordRepository.getByPetIdAndType(targetId, 'grooming');
+      setLatestGrooming(groomings.length > 0 ? groomings[0] : null);
+
+      const nails = recordRepository.getByPetIdAndType(targetId, 'nail');
+      setLatestNail(nails.length > 0 ? nails[0] : null);
     } else {
       setCurrentPetId(0);
       setLatestVaccine(null);
       setLatestDeworm(null);
       setLatestCheckup(null);
       setLatestDental(null);
+      setLatestBath(null);
+      setLatestGrooming(null);
+      setLatestNail(null);
     }
   }, [currentPetId]);
 
@@ -57,6 +72,9 @@ export default function PlanScreen() {
   const dewormDays = latestDeworm ? daysBetween(new Date(latestDeworm.recorded_at), now) : null;
   const checkupDays = latestCheckup ? daysBetween(new Date(latestCheckup.recorded_at), now) : null;
   const dentalDays = latestDental ? daysBetween(new Date(latestDental.recorded_at), now) : null;
+  const bathDays = latestBath ? daysBetween(new Date(latestBath.recorded_at), now) : null;
+  const groomingDays = latestGrooming ? daysBetween(new Date(latestGrooming.recorded_at), now) : null;
+  const nailDays = latestNail ? daysBetween(new Date(latestNail.recorded_at), now) : null;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -176,6 +194,71 @@ export default function PlanScreen() {
                   </>
                 ) : (
                   <Text style={styles.planHint}>暂无洁牙记录</Text>
+                )}
+              </View>
+            </View>
+          </Card>
+
+          <Text style={styles.sectionTitle}>卫生周期提醒</Text>
+
+          <Card style={styles.planCard}>
+            <View style={styles.planRow}>
+              <MaterialCommunityIcons name="shower-head" size={22} color={colors.bath} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.planLabel}>洗澡</Text>
+                {latestBath ? (
+                  <>
+                    <Text style={styles.planDetail}>上次：{formatDate(latestBath.recorded_at)}</Text>
+                    <Text style={[styles.planStatus, { color: bathDays! > BATH_INTERVAL_DAYS ? colors.error : colors.success }]}>
+                      {bathDays! > BATH_INTERVAL_DAYS
+                        ? `已过 ${bathDays} 天，建议洗澡`
+                        : `${BATH_INTERVAL_DAYS - bathDays!} 天后到期`}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.planHint}>暂无洗澡记录</Text>
+                )}
+              </View>
+            </View>
+          </Card>
+
+          <Card style={styles.planCard}>
+            <View style={styles.planRow}>
+              <MaterialCommunityIcons name="content-cut" size={22} color={colors.grooming} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.planLabel}>毛发修剪</Text>
+                {latestGrooming ? (
+                  <>
+                    <Text style={styles.planDetail}>上次：{formatDate(latestGrooming.recorded_at)}</Text>
+                    <Text style={[styles.planStatus, { color: groomingDays! > GROOMING_INTERVAL_DAYS ? colors.error : colors.success }]}>
+                      {groomingDays! > GROOMING_INTERVAL_DAYS
+                        ? `已过 ${groomingDays} 天，建议修剪`
+                        : `${GROOMING_INTERVAL_DAYS - groomingDays!} 天后到期`}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.planHint}>暂无毛发修剪记录</Text>
+                )}
+              </View>
+            </View>
+          </Card>
+
+          <Card style={styles.planCard}>
+            <View style={styles.planRow}>
+              <MaterialCommunityIcons name="hand-back-right-outline" size={22} color={colors.nail} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.planLabel}>剪指甲</Text>
+                {latestNail ? (
+                  <>
+                    <Text style={styles.planDetail}>上次：{formatDate(latestNail.recorded_at)}</Text>
+                    <Text style={[styles.planStatus, { color: nailDays! > NAIL_INTERVAL_DAYS ? colors.error : colors.success }]}>
+                      {nailDays! > NAIL_INTERVAL_DAYS
+                        ? `已过 ${nailDays} 天，建议剪指甲`
+                        : `${NAIL_INTERVAL_DAYS - nailDays!} 天后到期`}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.planHint}>暂无剪指甲记录</Text>
                 )}
               </View>
             </View>

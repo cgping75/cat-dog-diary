@@ -15,6 +15,11 @@ const typeOptions: { value: RecordType; label: string; icon: keyof typeof Materi
   { value: 'feeding', label: '喂食', icon: 'food-outline', color: colors.feeding },
   { value: 'checkup', label: '体检', icon: 'stethoscope', color: colors.checkup },
   { value: 'dental', label: '洁牙', icon: 'tooth-outline', color: colors.dental },
+  { value: 'bath', label: '洗澡', icon: 'shower-head', color: colors.bath },
+  { value: 'grooming', label: '毛发修剪', icon: 'content-cut', color: colors.grooming },
+  { value: 'nail', label: '剪指甲', icon: 'hand-back-right-outline', color: colors.nail },
+  { value: 'period', label: '经期', icon: 'water', color: colors.period },
+  { value: 'heat', label: '发情期', icon: 'heart-pulse', color: colors.heat },
 ];
 
 export default function AddRecordScreen() {
@@ -136,9 +141,9 @@ export default function AddRecordScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: spacing.xl },
-  typeGrid: { flexDirection: 'row', gap: spacing.sm },
+  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   typeBtn: {
-    flex: 1,
+    width: '22%',
     alignItems: 'center',
     gap: 4,
     paddingVertical: spacing.md,

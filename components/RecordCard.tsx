@@ -17,6 +17,11 @@ const typeConfig: { [K in RecordType]: { icon: keyof typeof MaterialCommunityIco
   feeding: { icon: 'food-outline', color: '#8D6E63', label: '喂食' },
   checkup: { icon: 'stethoscope', color: '#7E57C2', label: '体检' },
   dental: { icon: 'tooth-outline', color: '#26A69A', label: '洁牙' },
+  bath: { icon: 'shower-head', color: '#42A5F5', label: '洗澡' },
+  grooming: { icon: 'content-cut', color: '#EC407A', label: '毛发修剪' },
+  nail: { icon: 'hand-back-right-outline', color: '#FFA726', label: '剪指甲' },
+  period: { icon: 'water', color: '#EF5350', label: '经期' },
+  heat: { icon: 'heart-pulse', color: '#AB47BC', label: '发情期' },
 };
 
 function formatDate(dateStr: string): string {

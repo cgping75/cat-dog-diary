@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository, PetRecord } from '@/lib/recordRepository';
 import { colors, borderRadius, spacing } from '@/lib/theme';
-import { daysBetween, VACCINE_INTERVAL_DAYS, DEWORM_INTERVAL_DAYS, CHECKUP_INTERVAL_DAYS, DENTAL_INTERVAL_DAYS } from '@/lib/dateUtils';
+import { daysBetween, VACCINE_INTERVAL_DAYS, DEWORM_INTERVAL_DAYS, CHECKUP_INTERVAL_DAYS, DENTAL_INTERVAL_DAYS, BATH_INTERVAL_DAYS, GROOMING_INTERVAL_DAYS, NAIL_INTERVAL_DAYS } from '@/lib/dateUtils';
 import Card from '@/components/Card';
 import PetSwitcher from '@/components/PetSwitcher';
 import QuickEntry from '@/components/QuickEntry';
@@ -59,6 +59,21 @@ export default function TodayScreen() {
     if (dentals.length > 0) {
       const days = daysBetween(new Date(dentals[0].recorded_at), now);
       if (days > DENTAL_INTERVAL_DAYS) rems.push({ text: '该洁牙了', icon: 'tooth-outline' });
+    }
+    const baths = recordRepository.getByPetIdAndType(targetId, 'bath');
+    if (baths.length > 0) {
+      const days = daysBetween(new Date(baths[0].recorded_at), now);
+      if (days > BATH_INTERVAL_DAYS) rems.push({ text: '该洗澡了', icon: 'shower-head' });
+    }
+    const groomings = recordRepository.getByPetIdAndType(targetId, 'grooming');
+    if (groomings.length > 0) {
+      const days = daysBetween(new Date(groomings[0].recorded_at), now);
+      if (days > GROOMING_INTERVAL_DAYS) rems.push({ text: '该修剪毛发了', icon: 'content-cut' });
+    }
+    const nails = recordRepository.getByPetIdAndType(targetId, 'nail');
+    if (nails.length > 0) {
+      const days = daysBetween(new Date(nails[0].recorded_at), now);
+      if (days > NAIL_INTERVAL_DAYS) rems.push({ text: '该剪指甲了', icon: 'hand-back-right-outline' });
     }
     setReminders(rems);
   }, [currentPetId]);
@@ -127,9 +142,33 @@ export default function TodayScreen() {
         <QuickEntry icon="scale-bathroom" label="体重" color={colors.weight}
           onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'weight' } })}
           style={{ flex: 1 }} />
+        <QuickEntry icon="shower-head" label="洗澡" color={colors.bath}
+          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'bath' } })}
+          style={{ flex: 1 }} />
+      </View>
+      <View style={[styles.quickGrid, { marginTop: spacing.sm }]}>
+        <QuickEntry icon="content-cut" label="毛发修剪" color={colors.grooming}
+          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'grooming' } })}
+          style={{ flex: 1 }} />
+        <QuickEntry icon="hand-back-right-outline" label="剪指甲" color={colors.nail}
+          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'nail' } })}
+          style={{ flex: 1 }} />
+        <QuickEntry icon="water" label="经期" color={colors.period}
+          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'period' } })}
+          style={{ flex: 1 }} />
+        <QuickEntry icon="heart-pulse" label="发情期" color={colors.heat}
+          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'heat' } })}
+          style={{ flex: 1 }} />
+      </View>
+      <View style={[styles.quickGrid, { marginTop: spacing.sm }]}>
         <QuickEntry icon="alert-circle-outline" label="问题" color={colors.issue}
           onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'issue' } })}
           style={{ flex: 1 }} />
+        <QuickEntry icon="emoticon-happy-outline" label="情绪" color={colors.secondary}
+          onPress={() => router.push({ pathname: '/mood-tracker', params: { petId: String(currentPetId) } })}
+          style={{ flex: 1 }} />
+        <View style={{ flex: 1 }} />
+        <View style={{ flex: 1 }} />
       </View>
 
       <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>最近记录</Text>

@@ -19,6 +19,11 @@ export const colors = {
   feeding: '#A1887F',
   checkup: '#AB47BC',
   dental: '#26A69A',
+  bath: '#42A5F5',
+  grooming: '#EC407A',
+  nail: '#FFA726',
+  period: '#EF5350',
+  heat: '#AB47BC',
   reminderBg: '#FFF0F5',
 };
 

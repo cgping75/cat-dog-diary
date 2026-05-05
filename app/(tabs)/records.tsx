@@ -20,6 +20,11 @@ const filters: { key: string; label: string }[] = [
   { key: 'feeding' as const, label: '喂食' },
   { key: 'checkup' as const, label: '体检' },
   { key: 'dental' as const, label: '洁牙' },
+  { key: 'bath' as const, label: '洗澡' },
+  { key: 'grooming' as const, label: '毛发修剪' },
+  { key: 'nail' as const, label: '剪指甲' },
+  { key: 'period' as const, label: '经期' },
+  { key: 'heat' as const, label: '发情期' },
 ] satisfies { key: FilterKey; label: string }[];
 
 function fetchRecords(petId: number, filter: FilterKey): PetRecord[] {

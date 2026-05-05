@@ -11,3 +11,6 @@ export const VACCINE_INTERVAL_DAYS = 365;
 export const DEWORM_INTERVAL_DAYS = 90;
 export const CHECKUP_INTERVAL_DAYS = 365;
 export const DENTAL_INTERVAL_DAYS = 180;
+export const BATH_INTERVAL_DAYS = 14;
+export const GROOMING_INTERVAL_DAYS = 60;
+export const NAIL_INTERVAL_DAYS = 30;
