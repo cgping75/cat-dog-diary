@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npx expo *)",
+      "Bash(adb devices *)",
+      "Bash(emulator -avd Medium_Phone_API_36 -no-snapshot -no-audio)",
+      "Bash(disown)",
+      "Bash(adb shell *)",
+      "Bash(adb logcat *)",
+      "Bash(adb pull *)",
+      "Bash(adb exec-out *)",
+      "Read(//tmp/**)",
+      "Read(//c/Users/Administrator/Desktop/**)",
+      "Bash(curl *)",
+      "Bash(python3 -c \" import json, sys data = json.load\\(sys.stdin\\) for r in data[:3]: for a in r.get\\('assets', []\\): print\\(a.get\\('browser_download_url', ''\\)\\) \")",
+      "Bash(cat screen_current.png)",
+      "Bash(python3 -c \"import sys; data=sys.stdin.buffer.read\\(\\); f=open\\(r'C:\\\\Users\\\\Administrator\\\\Documents\\\\new-project\\\\screen_today_tab.jpg','wb'\\); f.write\\(data\\); f.close\\(\\); print\\(f'Saved {len\\(data\\)} bytes'\\)\")",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 17336 //F)",
+      "Bash(adb reverse *)",
+      "Bash(lsof -ti:8081)",
+      "Bash(tasklist)",
+      "Bash(taskkill //F //PID 4284)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(adb kill-server *)",
+      "Bash(adb start-server *)",
+      "Bash(adb install *)",
+      "Bash(adb uninstall *)"
+    ]
+  }
+}

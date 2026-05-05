@@ -22,19 +22,19 @@ export default function QuickEntry({ icon, label, color, onPress, style }: Quick
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
+    borderRadius: 20,
     padding: spacing.lg,
     alignItems: 'center',
     gap: spacing.sm,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowColor: '#FF7EB3',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
     elevation: 2,
   },
   label: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
   },
 });

@@ -4,34 +4,36 @@ import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository, PetRecord, RecordType } from '@/lib/recordRepository';
+
+type FilterKey = RecordType | 'all';
 import { colors, borderRadius, spacing } from '@/lib/theme';
 import PetSwitcher from '@/components/PetSwitcher';
 import RecordCard from '@/components/RecordCard';
 import EmptyState from '@/components/EmptyState';
 
-const filters: { key: RecordType | 'all'; label: string }[] = [
-  { key: 'all', label: '全部' },
-  { key: 'vaccine', label: '疫苗' },
-  { key: 'deworm', label: '驱虫' },
-  { key: 'weight', label: '体重' },
-  { key: 'issue', label: '问题' },
-  { key: 'feeding', label: '喂食' },
-  { key: 'checkup', label: '体检' },
-  { key: 'dental', label: '洁牙' },
-];
+const filters: { key: string; label: string }[] = [
+  { key: 'all' as const, label: '全部' },
+  { key: 'vaccine' as const, label: '疫苗' },
+  { key: 'deworm' as const, label: '驱虫' },
+  { key: 'weight' as const, label: '体重' },
+  { key: 'issue' as const, label: '问题' },
+  { key: 'feeding' as const, label: '喂食' },
+  { key: 'checkup' as const, label: '体检' },
+  { key: 'dental' as const, label: '洁牙' },
+] satisfies { key: FilterKey; label: string }[];
 
-function fetchRecords(petId: number, filter: RecordType | 'all'): PetRecord[] {
+function fetchRecords(petId: number, filter: FilterKey): PetRecord[] {
   if (!petId) return [];
   return filter === 'all'
     ? recordRepository.getByPetId(petId)
-    : recordRepository.getByPetIdAndType(petId, filter);
+    : recordRepository.getByPetIdAndType(petId, filter as RecordType);
 }
 
 export default function RecordsScreen() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [currentPetId, setCurrentPetId] = useState<number>(0);
   const [records, setRecords] = useState<PetRecord[]>([]);
-  const [filter, setFilter] = useState<RecordType | 'all'>('all');
+  const [filter, setFilter] = useState<FilterKey>('all');
 
   const loadData = useCallback(() => {
     const allPets = petRepository.getAll();
@@ -54,7 +56,7 @@ export default function RecordsScreen() {
     setRecords(fetchRecords(id, filter));
   };
 
-  const handleFilterChange = (key: RecordType | 'all') => {
+  const handleFilterChange = (key: FilterKey) => {
     setFilter(key);
     setRecords(fetchRecords(currentPetId, key));
   };
@@ -85,7 +87,7 @@ export default function RecordsScreen() {
                 <TouchableOpacity
                   key={f.key}
                   style={[styles.filterBtn, filter === f.key && styles.filterBtnActive]}
-                  onPress={() => handleFilterChange(f.key)}
+                  onPress={() => handleFilterChange(f.key as FilterKey)}
                 >
                   <Text style={[styles.filterText, filter === f.key && styles.filterTextActive]}>{f.label}</Text>
                 </TouchableOpacity>
@@ -130,10 +132,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#FF7EB3',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
     elevation: 6,
   },
 });
