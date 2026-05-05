@@ -1,0 +1,71 @@
+import * as SQLite from 'expo-sqlite';
+
+let db: SQLite.SQLiteDatabase | null = null;
+
+export const getDB = () => {
+  if (!db) {
+    db = SQLite.openDatabaseSync('pets.db');
+    initDB();
+    seedDB();
+  }
+  return db;
+};
+
+const initDB = () => {
+  if (!db) return;
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS pets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      pet_type TEXT NOT NULL,
+      breed TEXT,
+      gender TEXT,
+      age_text TEXT,
+      is_neutered TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pet_id INTEGER NOT NULL,
+      record_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      note TEXT,
+      value_text TEXT,
+      recorded_at TEXT DEFAULT (datetime('now')),
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (pet_id) REFERENCES pets(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS quiz_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      score INTEGER NOT NULL,
+      total INTEGER NOT NULL,
+      passed INTEGER NOT NULL DEFAULT 0,
+      completed_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+};
+
+const seedDB = () => {
+  if (!db) return;
+  const count = db.getFirstSync<{ c: number }>('SELECT COUNT(*) as c FROM pets');
+  if (count && count.c === 0) {
+    db.runSync(`INSERT INTO pets (name, pet_type, breed, gender, age_text, is_neutered) VALUES (?, ?, ?, ?, ?, ?)`,
+      ['Mimi', 'cat', 'British Shorthair', 'female', '2岁', 'yes']);
+    db.runSync(`INSERT INTO pets (name, pet_type, breed, gender, age_text, is_neutered) VALUES (?, ?, ?, ?, ?, ?)`,
+      ['旺财', 'dog', 'Golden Retriever', 'male', '3岁', 'no']);
+    // Seed some records for Mimi (pet_id=1)
+    db.runSync(`INSERT INTO records (pet_id, record_type, title, note, value_text, recorded_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [1, 'vaccine', '狂犬疫苗', '年度疫苗接种', null, '2025-06-15']);
+    db.runSync(`INSERT INTO records (pet_id, record_type, title, note, value_text, recorded_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [1, 'deworm', '体内驱虫', '使用拜耳内虫逃', null, '2025-11-20']);
+    db.runSync(`INSERT INTO records (pet_id, record_type, title, note, value_text, recorded_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [1, 'weight', '体重记录', null, '4.5kg', '2026-01-10']);
+    // Seed some records for 旺财 (pet_id=2)
+    db.runSync(`INSERT INTO records (pet_id, record_type, title, note, value_text, recorded_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [2, 'vaccine', '犬四联疫苗', '首次接种', null, '2025-03-10']);
+    db.runSync(`INSERT INTO records (pet_id, record_type, title, note, value_text, recorded_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [2, 'weight', '体重记录', null, '28kg', '2026-02-15']);
+  }
+};

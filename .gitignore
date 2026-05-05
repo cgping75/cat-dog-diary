@@ -41,3 +41,7 @@ app-example
 # generated native folders
 /ios
 /android
+
+# debug screenshots
+screen_*.jpg
+screen_*.png
