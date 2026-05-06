@@ -1,9 +1,7 @@
 import { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository, PetRecord } from '@/lib/recordRepository';
 import { checkinRepository, CheckinItemWithStatus } from '@/lib/checkinRepository';
@@ -12,9 +10,9 @@ import { colors, borderRadius, spacing } from '@/lib/theme';
 import { daysBetween, VACCINE_INTERVAL_DAYS, DEWORM_INTERVAL_DAYS, CHECKUP_INTERVAL_DAYS, DENTAL_INTERVAL_DAYS, BATH_INTERVAL_DAYS, GROOMING_INTERVAL_DAYS, NAIL_INTERVAL_DAYS } from '@/lib/dateUtils';
 import { formatDateStr } from '@/lib/calendarUtils';
 import { estimateWeather, getInteractionSuggestion } from '@/lib/interactionData';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Card from '@/components/Card';
 import CalendarWindowCard from '@/components/CalendarWindowCard';
-import PetSwitcher from '@/components/PetSwitcher';
 import QuickEntry from '@/components/QuickEntry';
 import EmptyState from '@/components/EmptyState';
 
@@ -28,8 +26,6 @@ export default function TodayScreen() {
   const [checkinItems, setCheckinItems] = useState<CheckinItemWithStatus[]>([]);
   const [todayTodos, setTodayTodos] = useState<TodoItem[]>([]);
   const [nextTodo, setNextTodo] = useState<TodoItem | null>(null);
-  const [showAddCheckin, setShowAddCheckin] = useState(false);
-  const [newCheckinLabel, setNewCheckinLabel] = useState('');
   const [calendarBgUri, setCalendarBgUri] = useState<string>('');
 
   const loadData = useCallback(() => {
@@ -82,7 +78,6 @@ export default function TodayScreen() {
     check('nail', NAIL_INTERVAL_DAYS, '该剪指甲了', 'hand-back-right-outline');
     setReminders(rems);
 
-    // Load saved calendar bg
     AsyncStorage.getItem('calendar_bg_uri').then((uri) => {
       if (uri) setCalendarBgUri(uri);
     });
@@ -96,45 +91,8 @@ export default function TodayScreen() {
     setStreak(checkinRepository.getStreak(currentPetId));
   };
 
-  const handleAddCheckin = () => {
-    if (!newCheckinLabel.trim()) return;
-    const ok = checkinRepository.addItem(currentPetId, newCheckinLabel.trim());
-    if (!ok) {
-      Alert.alert('提示', '自定义打卡项最多3个');
-      return;
-    }
-    setNewCheckinLabel('');
-    setShowAddCheckin(false);
-    setCheckinItems(checkinRepository.getItemsWithStatus(currentPetId));
-  };
-
-  const handleRemoveCheckin = (itemId: number, label: string) => {
-    Alert.alert('删除打卡项', `确定删除「${label}」？`, [
-      { text: '取消', style: 'cancel' },
-      { text: '删除', style: 'destructive', onPress: () => {
-        checkinRepository.removeItem(itemId);
-        setCheckinItems(checkinRepository.getItemsWithStatus(currentPetId));
-      }},
-    ]);
-  };
-
-  const handlePickCalendarBg = () => {
-    Alert.alert('日历底图', '选择日历背景图片', [
-      { text: '从相册选择', onPress: async () => {
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) return;
-        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
-        if (!result.canceled && result.assets[0]) {
-          setCalendarBgUri(result.assets[0].uri);
-          AsyncStorage.setItem('calendar_bg_uri', result.assets[0].uri);
-        }
-      }},
-      { text: '恢复默认白底', style: 'destructive', onPress: () => {
-        setCalendarBgUri('');
-        AsyncStorage.removeItem('calendar_bg_uri');
-      }},
-      { text: '取消', style: 'cancel' },
-    ]);
+  const handlePetSelect = (id: number) => {
+    setCurrentPetId(id);
   };
 
   if (pets.length === 0) {
@@ -152,11 +110,30 @@ export default function TodayScreen() {
   const suggestion = getInteractionSuggestion(currentPet);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <PetSwitcher pets={pets} selectedId={currentPetId} onSelect={setCurrentPetId} />
+    <View style={styles.container}>
+      {/* Custom header with pet switcher */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>今日</Text>
+        {pets.length > 1 && (
+          <View style={styles.petTabs}>
+            {pets.map((pet) => (
+              <TouchableOpacity
+                key={pet.id}
+                style={[styles.petTab, pet.id === currentPetId && styles.petTabActive]}
+                onPress={() => handlePetSelect(pet.id)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.petTabText, pet.id === currentPetId && styles.petTabTextActive]} numberOfLines={1}>
+                  {pet.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
 
-      {/* Calendar Window Card — tap to full calendar */}
-      <View>
+      <ScrollView contentContainerStyle={styles.content}>
+        {/* Calendar Window Card */}
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={() => router.push({ pathname: '/calendar-full', params: { petId: String(currentPetId) } })}
@@ -177,169 +154,118 @@ export default function TodayScreen() {
             onToggleCheckin={handleToggleCheckin}
           />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.bgSettingBtn} onPress={handlePickCalendarBg} activeOpacity={0.6}>
-          <MaterialCommunityIcons name="image-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.bgSettingText}>更换底图</Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* Manage custom checkin items */}
-      <Card style={styles.manageCard}>
-        <TouchableOpacity
-          style={styles.manageHeader}
-          onPress={() => setShowAddCheckin(!showAddCheckin)}
-          activeOpacity={0.7}
-        >
-          <MaterialCommunityIcons name="cog-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.manageText}>管理打卡项目</Text>
-          <MaterialCommunityIcons name={showAddCheckin ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textSecondary} />
-        </TouchableOpacity>
-        {showAddCheckin && (
-          <View style={styles.manageBody}>
-            <View style={styles.addItemRow}>
-              <TextInput
-                style={styles.addItemInput}
-                value={newCheckinLabel}
-                onChangeText={setNewCheckinLabel}
-                placeholder="新增打卡项（最多3个自定义）"
-                placeholderTextColor={colors.textSecondary}
-                maxLength={10}
-              />
-              <TouchableOpacity style={styles.addItemBtn} onPress={handleAddCheckin}>
-                <MaterialCommunityIcons name="plus" size={18} color={colors.card} />
-              </TouchableOpacity>
-            </View>
-            {checkinItems.filter((i) => !i.is_system).length === 0 && (
-              <Text style={styles.manageHint}>暂无自定义打卡项</Text>
-            )}
-            {checkinItems.filter((i) => !i.is_system).map((item) => (
-              <View key={item.id} style={styles.manageItemRow}>
-                <Text style={styles.manageItemLabel}>{item.label}</Text>
-                <TouchableOpacity onPress={() => handleRemoveCheckin(item.id, item.label)}>
-                  <MaterialCommunityIcons name="close-circle-outline" size={18} color={colors.error} />
-                </TouchableOpacity>
+        {/* Reminders */}
+        {reminders.length > 0 && (
+          <Card style={styles.reminderCard}>
+            <Text style={styles.sectionTitle}>提醒事项</Text>
+            {reminders.map((r, i) => (
+              <View key={i} style={styles.reminderRow}>
+                <MaterialCommunityIcons name={r.icon} size={20} color={colors.warning} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.reminderText}>{r.text}</Text>
+                  <Text style={styles.reminderDate}>上次：{r.lastDate} · 已超{r.daysOver}天</Text>
+                </View>
               </View>
             ))}
-          </View>
+          </Card>
         )}
-      </Card>
 
-      {/* Reminders */}
-      {reminders.length > 0 && (
-        <Card style={styles.reminderCard}>
-          <Text style={styles.sectionTitle}>提醒事项</Text>
-          {reminders.map((r, i) => (
-            <View key={i} style={styles.reminderRow}>
-              <MaterialCommunityIcons name={r.icon} size={20} color={colors.warning} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.reminderText}>{r.text}</Text>
-                <Text style={styles.reminderDate}>上次：{r.lastDate} · 已超{r.daysOver}天</Text>
-              </View>
-            </View>
-          ))}
-        </Card>
-      )}
+        {/* Quick entries */}
+        <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>快捷入口</Text>
+        <View style={styles.quickGrid}>
+          <QuickEntry icon="needle" label="疫苗" color={colors.vaccine}
+            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'vaccine' } })}
+            style={{ flex: 1 }} />
+          <QuickEntry icon="pill" label="驱虫" color={colors.deworm}
+            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'deworm' } })}
+            style={{ flex: 1 }} />
+          <QuickEntry icon="scale-bathroom" label="体重" color={colors.weight}
+            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'weight' } })}
+            style={{ flex: 1 }} />
+          <QuickEntry icon="shower-head" label="洗澡" color={colors.bath}
+            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'bath' } })}
+            style={{ flex: 1 }} />
+        </View>
+        <View style={[styles.quickGrid, { marginTop: spacing.sm }]}>
+          <QuickEntry icon="content-cut" label="毛发修剪" color={colors.grooming}
+            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'grooming' } })}
+            style={{ flex: 1 }} />
+          <QuickEntry icon="hand-back-right-outline" label="剪指甲" color={colors.nail}
+            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'nail' } })}
+            style={{ flex: 1 }} />
+          <QuickEntry icon="water" label="经期" color={colors.period}
+            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'period' } })}
+            style={{ flex: 1 }} />
+          <QuickEntry icon="heart-pulse" label="发情期" color={colors.heat}
+            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'heat' } })}
+            style={{ flex: 1 }} />
+        </View>
+        <View style={[styles.quickGrid, { marginTop: spacing.sm }]}>
+          <QuickEntry icon="human" label="体型" color={colors.bodySize}
+            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'body_size' } })}
+            style={{ flex: 1 }} />
+          <QuickEntry icon="alert-circle-outline" label="问题" color={colors.issue}
+            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'issue' } })}
+            style={{ flex: 1 }} />
+          <QuickEntry icon="emoticon-happy-outline" label="情绪" color={colors.secondary}
+            onPress={() => router.push({ pathname: '/mood-tracker', params: { petId: String(currentPetId) } })}
+            style={{ flex: 1 }} />
+          <View style={{ flex: 1 }} />
+        </View>
 
-      {/* Quick entries */}
-      <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>快捷入口</Text>
-      <View style={styles.quickGrid}>
-        <QuickEntry icon="needle" label="疫苗" color={colors.vaccine}
-          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'vaccine' } })}
-          style={{ flex: 1 }} />
-        <QuickEntry icon="pill" label="驱虫" color={colors.deworm}
-          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'deworm' } })}
-          style={{ flex: 1 }} />
-        <QuickEntry icon="scale-bathroom" label="体重" color={colors.weight}
-          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'weight' } })}
-          style={{ flex: 1 }} />
-        <QuickEntry icon="shower-head" label="洗澡" color={colors.bath}
-          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'bath' } })}
-          style={{ flex: 1 }} />
-      </View>
-      <View style={[styles.quickGrid, { marginTop: spacing.sm }]}>
-        <QuickEntry icon="content-cut" label="毛发修剪" color={colors.grooming}
-          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'grooming' } })}
-          style={{ flex: 1 }} />
-        <QuickEntry icon="hand-back-right-outline" label="剪指甲" color={colors.nail}
-          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'nail' } })}
-          style={{ flex: 1 }} />
-        <QuickEntry icon="water" label="经期" color={colors.period}
-          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'period' } })}
-          style={{ flex: 1 }} />
-        <QuickEntry icon="heart-pulse" label="发情期" color={colors.heat}
-          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'heat' } })}
-          style={{ flex: 1 }} />
-      </View>
-      <View style={[styles.quickGrid, { marginTop: spacing.sm }]}>
-        <QuickEntry icon="human" label="体型" color={colors.bodySize}
-          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'body_size' } })}
-          style={{ flex: 1 }} />
-        <QuickEntry icon="alert-circle-outline" label="问题" color={colors.issue}
-          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'issue' } })}
-          style={{ flex: 1 }} />
-        <QuickEntry icon="emoticon-happy-outline" label="情绪" color={colors.secondary}
-          onPress={() => router.push({ pathname: '/mood-tracker', params: { petId: String(currentPetId) } })}
-          style={{ flex: 1 }} />
-        <View style={{ flex: 1 }} />
-      </View>
-
-      {/* Recent records */}
-      <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>最近记录</Text>
-      {recentRecords.length === 0 ? (
-        <Text style={styles.emptyHint}>暂无记录，点击上方入口添加</Text>
-      ) : (
-        recentRecords.map((r) => (
-          <TouchableOpacity
-            key={r.id}
-            style={styles.recordItem}
-            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(r.pet_id), recordId: String(r.id) } })}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.recordTitle}>{r.title}</Text>
-            <Text style={styles.recordMeta}>
-              {r.value_text ? `${r.value_text} · ` : ''}{r.recorded_at.slice(0, 10)}
-            </Text>
-          </TouchableOpacity>
-        ))
-      )}
-    </ScrollView>
+        {/* Recent records */}
+        <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>最近记录</Text>
+        {recentRecords.length === 0 ? (
+          <Text style={styles.emptyHint}>暂无记录，点击上方入口添加</Text>
+        ) : (
+          recentRecords.map((r) => (
+            <TouchableOpacity
+              key={r.id}
+              style={styles.recordItem}
+              onPress={() => router.push({ pathname: '/add-record', params: { petId: String(r.pet_id), recordId: String(r.id) } })}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.recordTitle}>{r.title}</Text>
+              <Text style={styles.recordMeta}>
+                {r.value_text ? `${r.value_text} · ` : ''}{r.recorded_at.slice(0, 10)}
+              </Text>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  bgSettingBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: 8,
-    marginTop: 4,
+  header: {
+    backgroundColor: colors.background,
+    paddingTop: 48,
+    paddingBottom: 8,
+    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
-  bgSettingText: { fontSize: 12, color: colors.textSecondary },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: colors.text },
+  petTabs: { flexDirection: 'row', gap: 6, flex: 1 },
+  petTab: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.card,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  petTabActive: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
+  petTabText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, maxWidth: 60, textAlign: 'center' },
+  petTabTextActive: { color: colors.primary },
   content: { padding: spacing.lg, paddingBottom: spacing.xl },
-  manageCard: { marginTop: spacing.sm, paddingVertical: 0, paddingHorizontal: 0 },
-  manageHeader: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-  },
-  manageText: { flex: 1, fontSize: 13, fontWeight: '600', color: colors.textSecondary },
-  manageBody: {
-    paddingHorizontal: spacing.md, paddingBottom: spacing.md,
-    borderTopWidth: 1, borderTopColor: colors.border, gap: spacing.sm,
-  },
-  addItemRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
-  addItemInput: {
-    flex: 1, borderWidth: 1.5, borderColor: colors.border, borderRadius: 12,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    fontSize: 14, color: colors.text, backgroundColor: colors.background,
-  },
-  addItemBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  manageHint: { fontSize: 12, color: colors.textSecondary },
-  manageItemRow: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-  },
-  manageItemLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.text },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
   reminderCard: { marginTop: spacing.md, backgroundColor: colors.reminderBg },
   reminderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },

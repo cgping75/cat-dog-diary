@@ -108,6 +108,20 @@ export default function MineScreen() {
             </Card>
           </View>
 
+          {/* Calendar settings entry */}
+          <TouchableOpacity
+            style={styles.settingsRow}
+            onPress={() => router.push('/calendar-settings')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.settingsIcon, { backgroundColor: colors.secondaryLight }]}>
+              <MaterialCommunityIcons name="calendar-month" size={20} color={colors.secondary} />
+            </View>
+            <Text style={styles.settingsText}>日历设置</Text>
+            <Text style={styles.settingsHint}>更换底图 · 管理打卡项</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
           {pets.length === 0 && (
             <EmptyState icon="paw-outline" title="还没有添加宠物" subtitle="点击上方按钮添加第一只宠物吧" />
           )}
@@ -152,4 +166,27 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   dietBtnText: { fontSize: 13, fontWeight: '600', color: colors.primary },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    shadowColor: '#FF7EB3',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 1,
+  },
+  settingsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  settingsText: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.text },
+  settingsHint: { fontSize: 12, color: colors.textSecondary },
 });

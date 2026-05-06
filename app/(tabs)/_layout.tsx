@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { Platform, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '@/lib/theme';
 
@@ -11,14 +12,10 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
-          height: 60,
-          paddingBottom: 8,
+          borderTopWidth: 0.5,
+          height: Platform.OS === 'android' ? 56 : 60,
+          paddingBottom: Platform.OS === 'android' ? 4 : 8,
           paddingTop: 4,
-          shadowColor: '#FF7EB3',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 8,
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -33,6 +30,7 @@ export default function TabLayout() {
         name="today"
         options={{
           title: '今日',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="home-heart" size={size} color={color} />
           ),
