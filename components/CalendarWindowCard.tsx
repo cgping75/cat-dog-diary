@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   bgOverlay: {
-    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
   },
   tearLine: {
     flexDirection: 'row',

@@ -23,7 +23,7 @@ export default function TodayScreen() {
   const [currentPetId, setCurrentPetId] = useState<number>(0);
   const [currentPet, setCurrentPet] = useState<Pet | null>(null);
   const [recentRecords, setRecentRecords] = useState<PetRecord[]>([]);
-  const [reminders, setReminders] = useState<{ text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[]>([]);
+  const [reminders, setReminders] = useState<{ text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; lastDate: string; daysOver: number }[]>([]);
   const [streak, setStreak] = useState(0);
   const [checkinItems, setCheckinItems] = useState<CheckinItemWithStatus[]>([]);
   const [todayTodos, setTodayTodos] = useState<TodoItem[]>([]);
@@ -64,13 +64,13 @@ export default function TodayScreen() {
     const nextUpcoming = upcoming.find((t) => t.due_date > today) || null;
     setNextTodo(nextUpcoming);
 
-    const rems: { text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [];
+    const rems: { text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; lastDate: string; daysOver: number }[] = [];
     const now = new Date();
     const check = (type: string, interval: number, msg: string, icon: keyof typeof MaterialCommunityIcons.glyphMap) => {
       const recs = recordRepository.getByPetIdAndType(targetId, type as any);
       if (recs.length > 0) {
         const days = daysBetween(new Date(recs[0].recorded_at), now);
-        if (days > interval) rems.push({ text: msg, icon });
+        if (days > interval) rems.push({ text: msg, icon, lastDate: recs[0].recorded_at.slice(0, 10), daysOver: days - interval });
       }
     };
     check('vaccine', VACCINE_INTERVAL_DAYS, '该打疫苗了', 'needle');
@@ -123,7 +123,7 @@ export default function TodayScreen() {
       { text: '从相册选择', onPress: async () => {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) return;
-        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
         if (!result.canceled && result.assets[0]) {
           setCalendarBgUri(result.assets[0].uri);
           AsyncStorage.setItem('calendar_bg_uri', result.assets[0].uri);
@@ -231,7 +231,10 @@ export default function TodayScreen() {
           {reminders.map((r, i) => (
             <View key={i} style={styles.reminderRow}>
               <MaterialCommunityIcons name={r.icon} size={20} color={colors.warning} />
-              <Text style={styles.reminderText}>{r.text}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.reminderText}>{r.text}</Text>
+                <Text style={styles.reminderDate}>上次：{r.lastDate} · 已超{r.daysOver}天</Text>
+              </View>
             </View>
           ))}
         </Card>
@@ -339,8 +342,9 @@ const styles = StyleSheet.create({
   manageItemLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.text },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
   reminderCard: { marginTop: spacing.md, backgroundColor: colors.reminderBg },
-  reminderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
+  reminderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
   reminderText: { fontSize: 14, color: colors.text, fontWeight: '600' },
+  reminderDate: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   quickGrid: { flexDirection: 'row', gap: spacing.sm },
   emptyHint: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.md },
   recordItem: {
