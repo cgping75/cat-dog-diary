@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { colors, borderRadius, spacing } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 import { CheckinItemWithStatus } from '@/lib/checkinRepository';
 import { TodoItem } from '@/lib/todoRepository';
 import { Pet } from '@/lib/petRepository';
@@ -52,7 +52,7 @@ export default function CalendarWindowCard({
     <>
       {/* Top tear line */}
       <View style={styles.tearLine}>
-        {Array.from({ length: 30 }).map((_, i) => (
+        {Array.from({ length: 28 }).map((_, i) => (
           <View key={i} style={styles.tearDot} />
         ))}
       </View>
@@ -65,7 +65,7 @@ export default function CalendarWindowCard({
               <ImageBackground source={{ uri: pet.photo_uri }} style={styles.petAvatar} imageStyle={styles.petAvatarImg} />
             ) : (
               <View style={[styles.petAvatar, styles.petAvatarDefault]}>
-                <MaterialCommunityIcons name={pet.pet_type === 'cat' ? 'cat' : 'dog'} size={24} color={colors.primary} />
+                <MaterialCommunityIcons name={pet.pet_type === 'cat' ? 'cat' : 'dog'} size={30} color={colors.primary} />
               </View>
             )}
           </View>
@@ -73,13 +73,13 @@ export default function CalendarWindowCard({
             <Text style={styles.petName}>{pet.name}</Text>
             <Text style={styles.petMeta}>
               {pet.breed || (pet.pet_type === 'cat' ? '猫' : '狗')}
-              {pet.gender === 'male' ? ' · ♂' : pet.gender === 'female' ? ' · ♀' : ''}
+              {pet.gender === 'male' ? ' · ♂公' : pet.gender === 'female' ? ' · ♀母' : ''}
               {pet.age_text ? ` · ${pet.age_text}` : ''}
               {pet.weight ? ` · ${pet.weight}kg` : ''}
             </Text>
           </View>
           <View style={[styles.streakBadge, allSystemDone && styles.streakBadgeDone]}>
-            <MaterialCommunityIcons name="fire" size={14} color={allSystemDone ? '#FFD700' : '#C4A882'} />
+            <MaterialCommunityIcons name="fire" size={18} color={allSystemDone ? '#FFD700' : '#C4A882'} />
             <Text style={[styles.streakNum, allSystemDone && { color: '#FFD700' }]}>{streak}</Text>
           </View>
         </View>
@@ -110,15 +110,13 @@ export default function CalendarWindowCard({
             >
               <MaterialCommunityIcons
                 name={item.done ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
-                size={20}
+                size={24}
                 color={item.done ? colors.success : '#C4A882'}
               />
               <Text style={[styles.checkinItemLabel, item.done && styles.checkinItemDone]}>
                 {item.label}
               </Text>
-              <View style={styles.systemBadge}>
-                <Text style={styles.systemBadgeText}>固定</Text>
-              </View>
+              <Text style={styles.systemTag}>固定</Text>
             </TouchableOpacity>
           ))}
           {customItems.map((item) => (
@@ -130,7 +128,7 @@ export default function CalendarWindowCard({
             >
               <MaterialCommunityIcons
                 name={item.done ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
-                size={20}
+                size={24}
                 color={item.done ? colors.success : '#C4A882'}
               />
               <Text style={[styles.checkinItemLabel, item.done && styles.checkinItemDone]}>
@@ -144,7 +142,7 @@ export default function CalendarWindowCard({
       {/* Todo section */}
       <View style={styles.todoSection}>
         <View style={styles.todoHeader}>
-          <MaterialCommunityIcons name="clipboard-text-outline" size={14} color="#8B7B6E" />
+          <MaterialCommunityIcons name="clipboard-text-outline" size={18} color="#8B7B6E" />
           <Text style={styles.todoTitle}>
             {todayTodos.length === 0
               ? '今日无待办'
@@ -157,7 +155,7 @@ export default function CalendarWindowCard({
           <View key={t.id} style={styles.todoRow}>
             <MaterialCommunityIcons
               name={t.is_done ? 'checkbox-marked' : 'checkbox-blank-outline'}
-              size={14}
+              size={16}
               color={t.is_done ? colors.success : '#C4A882'}
             />
             <Text style={[styles.todoText, t.is_done ? styles.todoTextDone : null]} numberOfLines={1}>{t.title}</Text>
@@ -165,7 +163,7 @@ export default function CalendarWindowCard({
         ))}
         {todayTodos.length === 0 && nextTodo && (
           <View style={styles.todoRow}>
-            <MaterialCommunityIcons name="clock-outline" size={14} color={colors.warning} />
+            <MaterialCommunityIcons name="clock-outline" size={16} color={colors.warning} />
             <Text style={[styles.todoText, { color: colors.warning }]} numberOfLines={1}>
               下一待办：{nextTodo.title}（{nextTodo.due_date.slice(5)}）
             </Text>
@@ -181,7 +179,7 @@ export default function CalendarWindowCard({
         <View style={styles.weatherRow}>
           <MaterialCommunityIcons
             name={weatherIcon as keyof typeof MaterialCommunityIcons.glyphMap}
-            size={14}
+            size={16}
             color="#8B7B6E"
           />
           <Text style={styles.weatherText}>{weatherLabel} {weatherTemp}</Text>
@@ -189,7 +187,7 @@ export default function CalendarWindowCard({
         <View style={styles.suggestionRow}>
           <MaterialCommunityIcons
             name={suggestionIcon as keyof typeof MaterialCommunityIcons.glyphMap}
-            size={14}
+            size={16}
             color={colors.primary}
           />
           <Text style={styles.suggestionText} numberOfLines={2}>
@@ -200,7 +198,7 @@ export default function CalendarWindowCard({
 
       {/* Bottom tear line */}
       <View style={[styles.tearLine, styles.tearLineBottom]}>
-        {Array.from({ length: 30 }).map((_, i) => (
+        {Array.from({ length: 28 }).map((_, i) => (
           <View key={i} style={styles.tearDot} />
         ))}
       </View>
@@ -226,16 +224,17 @@ export default function CalendarWindowCard({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: 'hidden',
+    backgroundColor: '#FFFBF0',
     shadowColor: '#8B7355',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 5,
   },
   bgImage: {
-    borderRadius: 20,
+    borderRadius: 24,
     resizeMode: 'cover',
   },
   bgOverlay: {
@@ -244,33 +243,35 @@ const styles = StyleSheet.create({
   tearLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   tearLineBottom: {},
   tearDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: '#E8DCC8',
   },
+
+  // Pet info
   petRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
-    gap: spacing.sm,
+    paddingHorizontal: 24,
+    paddingTop: 14,
+    paddingBottom: 10,
+    gap: 12,
   },
   petAvatarWrap: {},
   petAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     overflow: 'hidden',
   },
   petAvatarImg: {
-    borderRadius: 20,
+    borderRadius: 26,
   },
   petAvatarDefault: {
     backgroundColor: colors.primaryLight,
@@ -278,78 +279,81 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   petInfo: { flex: 1 },
-  petName: { fontSize: 16, fontWeight: '800', color: '#5D4037' },
-  petMeta: { fontSize: 11, color: '#A89279', marginTop: 1 },
+  petName: { fontSize: 20, fontWeight: '800', color: '#5D4037' },
+  petMeta: { fontSize: 13, color: '#A89279', marginTop: 3 },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 4,
     backgroundColor: '#FFF8E1',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
   },
   streakBadgeDone: {
     backgroundColor: '#FFF3CD',
   },
-  streakNum: { fontSize: 14, fontWeight: '800', color: '#C4A882' },
+  streakNum: { fontSize: 18, fontWeight: '800', color: '#C4A882' },
+
+  // Date + checkin
   body: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    alignItems: 'center',
   },
   dateSection: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 80,
+    width: 100,
   },
   monthText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#B8860B',
-    letterSpacing: 1,
+    letterSpacing: 2,
   },
   dayText: {
-    fontSize: 48,
+    fontSize: 64,
     fontWeight: '900',
     color: '#8B4513',
-    lineHeight: 54,
+    lineHeight: 70,
     marginTop: -2,
   },
   weekdayText: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: '700',
     color: '#CD853F',
     marginTop: -2,
   },
   yearText: {
-    fontSize: 11,
+    fontSize: 13,
     color: '#C4A882',
-    marginTop: 2,
+    marginTop: 4,
   },
   divider: {
-    width: 1,
+    width: 1.5,
     backgroundColor: '#E8DCC8',
-    marginVertical: spacing.xs,
-    marginHorizontal: spacing.sm,
+    alignSelf: 'stretch',
+    marginHorizontal: 16,
   },
   checkinSection: {
     flex: 1,
-    gap: 6,
+    gap: 12,
   },
   checkinTitle: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '700',
     color: '#8B7B6E',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   checkinItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 10,
   },
   checkinItemLabel: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     color: '#6B5B4E',
     flex: 1,
@@ -358,42 +362,38 @@ const styles = StyleSheet.create({
     color: colors.success,
     textDecorationLine: 'line-through',
   },
-  systemBadge: {
-    backgroundColor: '#E8DCC8',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 8,
-  },
-  systemBadgeText: {
-    fontSize: 10,
+  systemTag: {
+    fontSize: 11,
     fontWeight: '600',
-    color: '#8B7B6E',
+    color: '#B8A892',
   },
+
+  // Todos
   todoSection: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
     borderTopWidth: 1,
     borderTopColor: '#E8DCC8',
-    marginHorizontal: spacing.md,
-    gap: 4,
+    marginHorizontal: 16,
+    gap: 8,
   },
   todoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   todoTitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
     color: '#8B7B6E',
   },
   todoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   todoText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#6B5B4E',
     flex: 1,
   },
@@ -402,34 +402,36 @@ const styles = StyleSheet.create({
     color: '#C4A882',
   },
   todoMore: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#C4A882',
-    marginLeft: 20,
+    marginLeft: 24,
   },
+
+  // Bottom
   bottomSection: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-    paddingTop: spacing.xs,
-    gap: 4,
+    paddingHorizontal: 24,
+    paddingBottom: 14,
+    paddingTop: 6,
+    gap: 8,
   },
   weatherRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   weatherText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#8B7B6E',
   },
   suggestionRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 6,
+    gap: 8,
   },
   suggestionText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#8B7B6E',
-    lineHeight: 17,
+    lineHeight: 20,
     flex: 1,
   },
 });
