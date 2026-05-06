@@ -80,5 +80,13 @@
   - 日历更换底图 + 管理打卡项目移至「我的」→「日历设置」独立页面
   - 今日页面自定义header（隐藏系统header，自绘标题+宠物切换）
 
+- [x] 17. App正式命名「猫狗日记」+ 宠物主题图标 + 远程仓库
+  - 命名：app.json name/slug/scheme/package 全部改为「猫狗日记」/cat-dog-diary
+  - 图标：粉色渐变背景 + 白色爪印（icon/adaptive-icon/favicon/monochrome 全套）
+  - 启动屏：浅粉底色 + 粉色爪印
+  - Android package: com.cgping75.catdogdiary
+  - 远程仓库：https://github.com/cgping75/cat-dog-diary
+  - generate-icons.js — 图标生成脚本（sharp + SVG）
+
 ## 最后更新
 2026-05-07
