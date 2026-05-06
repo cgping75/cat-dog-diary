@@ -24,6 +24,7 @@ export const colors = {
   nail: '#FFA726',
   period: '#EF5350',
   heat: '#AB47BC',
+  bodySize: '#5C6BC0',
   reminderBg: '#FFF0F5',
 };
 

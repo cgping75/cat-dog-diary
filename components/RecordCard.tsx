@@ -22,6 +22,7 @@ const typeConfig: { [K in RecordType]: { icon: keyof typeof MaterialCommunityIco
   nail: { icon: 'hand-back-right-outline', color: '#FFA726', label: '剪指甲' },
   period: { icon: 'water', color: '#EF5350', label: '经期' },
   heat: { icon: 'heart-pulse', color: '#AB47BC', label: '发情期' },
+  body_size: { icon: 'human', color: '#5C6BC0', label: '体型' },
 };
 
 function formatDate(dateStr: string): string {

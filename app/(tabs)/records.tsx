@@ -25,6 +25,7 @@ const filters: { key: string; label: string }[] = [
   { key: 'nail' as const, label: '剪指甲' },
   { key: 'period' as const, label: '经期' },
   { key: 'heat' as const, label: '发情期' },
+  { key: 'body_size' as const, label: '体型' },
 ] satisfies { key: FilterKey; label: string }[];
 
 function fetchRecords(petId: number, filter: FilterKey): PetRecord[] {

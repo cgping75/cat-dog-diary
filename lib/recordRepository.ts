@@ -2,7 +2,7 @@ import { getDB } from './db';
 
 export type RecordType =
   | 'vaccine' | 'deworm' | 'weight' | 'issue' | 'feeding' | 'checkup' | 'dental'
-  | 'bath' | 'grooming' | 'nail' | 'period' | 'heat';
+  | 'bath' | 'grooming' | 'nail' | 'period' | 'heat' | 'body_size';
 
 export type PetRecord = {
   id: number;

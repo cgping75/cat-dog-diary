@@ -20,6 +20,7 @@ const typeOptions: { value: RecordType; label: string; icon: keyof typeof Materi
   { value: 'nail', label: '剪指甲', icon: 'hand-back-right-outline', color: colors.nail },
   { value: 'period', label: '经期', icon: 'water', color: colors.period },
   { value: 'heat', label: '发情期', icon: 'heart-pulse', color: colors.heat },
+  { value: 'body_size', label: '体型', icon: 'human', color: colors.bodySize },
 ];
 
 export default function AddRecordScreen() {
