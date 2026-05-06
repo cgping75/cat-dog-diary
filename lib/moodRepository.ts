@@ -52,4 +52,16 @@ export const moodRepository = {
     const db = getDB();
     db.runSync('DELETE FROM mood_records WHERE id = ?', [id]);
   },
+
+  getMoodDatesInMonth(petId: number, year: number, month: number): Set<string> {
+    const db = getDB();
+    const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const rows = db.getAllSync<{ recorded_at: string }>(
+      "SELECT recorded_at FROM mood_records WHERE pet_id = ? AND recorded_at LIKE ?",
+      [petId, `${prefix}%`]
+    );
+    const set = new Set<string>();
+    rows.forEach((r) => set.add(r.recorded_at.slice(0, 10)));
+    return set;
+  },
 };

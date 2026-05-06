@@ -96,4 +96,24 @@ export const recordRepository = {
     );
     return result?.cnt ?? 0;
   },
+
+  getByPetIdAndDate(petId: number, dateStr: string): PetRecord[] {
+    const db = getDB();
+    return db.getAllSync<PetRecord>(
+      "SELECT * FROM records WHERE pet_id = ? AND recorded_at LIKE ? ORDER BY recorded_at DESC",
+      [petId, `${dateStr}%`]
+    );
+  },
+
+  getRecordDatesInMonth(petId: number, year: number, month: number): Set<string> {
+    const db = getDB();
+    const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const rows = db.getAllSync<{ recorded_at: string }>(
+      "SELECT recorded_at FROM records WHERE pet_id = ? AND recorded_at LIKE ?",
+      [petId, `${prefix}%`]
+    );
+    const set = new Set<string>();
+    rows.forEach((r) => set.add(r.recorded_at.slice(0, 10)));
+    return set;
+  },
 };

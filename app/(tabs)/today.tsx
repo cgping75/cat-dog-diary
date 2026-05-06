@@ -1,12 +1,16 @@
 import { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository, PetRecord } from '@/lib/recordRepository';
+import { moodRepository } from '@/lib/moodRepository';
+import { checkinRepository } from '@/lib/checkinRepository';
 import { colors, borderRadius, spacing } from '@/lib/theme';
 import { daysBetween, VACCINE_INTERVAL_DAYS, DEWORM_INTERVAL_DAYS, CHECKUP_INTERVAL_DAYS, DENTAL_INTERVAL_DAYS, BATH_INTERVAL_DAYS, GROOMING_INTERVAL_DAYS, NAIL_INTERVAL_DAYS } from '@/lib/dateUtils';
+import { formatDateStr } from '@/lib/calendarUtils';
 import Card from '@/components/Card';
+import Calendar from '@/components/Calendar';
 import PetSwitcher from '@/components/PetSwitcher';
 import QuickEntry from '@/components/QuickEntry';
 import EmptyState from '@/components/EmptyState';
@@ -17,6 +21,13 @@ export default function TodayScreen() {
   const [currentPet, setCurrentPet] = useState<Pet | null>(null);
   const [recentRecords, setRecentRecords] = useState<PetRecord[]>([]);
   const [reminders, setReminders] = useState<{ text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[]>([]);
+  const [isCheckedin, setIsCheckedin] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [selectedDate, setSelectedDate] = useState(formatDateStr(new Date()));
+  const [selectedDateRecords, setSelectedDateRecords] = useState<PetRecord[]>([]);
+  const [markedDates, setMarkedDates] = useState<{ [d: string]: { dotColor?: string; marked?: boolean } }>({});
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
+  const [calMonth, setCalMonth] = useState(new Date().getMonth());
 
   const loadData = useCallback(() => {
     const allPets = petRepository.getAll();
@@ -27,6 +38,10 @@ export default function TodayScreen() {
       setCurrentPet(null);
       setRecentRecords([]);
       setReminders([]);
+      setIsCheckedin(false);
+      setStreak(0);
+      setMarkedDates({});
+      setSelectedDateRecords([]);
       return;
     }
 
@@ -37,48 +52,72 @@ export default function TodayScreen() {
     const pet = petRepository.getById(targetId);
     setCurrentPet(pet);
     setRecentRecords(recordRepository.getRecentByPetId(targetId, 3));
+    setIsCheckedin(checkinRepository.isCheckedinToday(targetId));
+    setStreak(checkinRepository.getStreak(targetId));
 
+    // Build reminders
     const rems: { text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [];
     const now = new Date();
-    const vaccines = recordRepository.getByPetIdAndType(targetId, 'vaccine');
-    if (vaccines.length > 0) {
-      const days = daysBetween(new Date(vaccines[0].recorded_at), now);
-      if (days > VACCINE_INTERVAL_DAYS) rems.push({ text: '该打疫苗了', icon: 'needle' });
-    }
-    const deworms = recordRepository.getByPetIdAndType(targetId, 'deworm');
-    if (deworms.length > 0) {
-      const days = daysBetween(new Date(deworms[0].recorded_at), now);
-      if (days > DEWORM_INTERVAL_DAYS) rems.push({ text: '该驱虫了', icon: 'pill' });
-    }
-    const checkups = recordRepository.getByPetIdAndType(targetId, 'checkup');
-    if (checkups.length > 0) {
-      const days = daysBetween(new Date(checkups[0].recorded_at), now);
-      if (days > CHECKUP_INTERVAL_DAYS) rems.push({ text: '该体检了', icon: 'stethoscope' });
-    }
-    const dentals = recordRepository.getByPetIdAndType(targetId, 'dental');
-    if (dentals.length > 0) {
-      const days = daysBetween(new Date(dentals[0].recorded_at), now);
-      if (days > DENTAL_INTERVAL_DAYS) rems.push({ text: '该洁牙了', icon: 'tooth-outline' });
-    }
-    const baths = recordRepository.getByPetIdAndType(targetId, 'bath');
-    if (baths.length > 0) {
-      const days = daysBetween(new Date(baths[0].recorded_at), now);
-      if (days > BATH_INTERVAL_DAYS) rems.push({ text: '该洗澡了', icon: 'shower-head' });
-    }
-    const groomings = recordRepository.getByPetIdAndType(targetId, 'grooming');
-    if (groomings.length > 0) {
-      const days = daysBetween(new Date(groomings[0].recorded_at), now);
-      if (days > GROOMING_INTERVAL_DAYS) rems.push({ text: '该修剪毛发了', icon: 'content-cut' });
-    }
-    const nails = recordRepository.getByPetIdAndType(targetId, 'nail');
-    if (nails.length > 0) {
-      const days = daysBetween(new Date(nails[0].recorded_at), now);
-      if (days > NAIL_INTERVAL_DAYS) rems.push({ text: '该剪指甲了', icon: 'hand-back-right-outline' });
-    }
+    const check = (type: string, interval: number, msg: string, icon: keyof typeof MaterialCommunityIcons.glyphMap) => {
+      const recs = recordRepository.getByPetIdAndType(targetId, type as any);
+      if (recs.length > 0) {
+        const days = daysBetween(new Date(recs[0].recorded_at), now);
+        if (days > interval) rems.push({ text: msg, icon });
+      }
+    };
+    check('vaccine', VACCINE_INTERVAL_DAYS, '该打疫苗了', 'needle');
+    check('deworm', DEWORM_INTERVAL_DAYS, '该驱虫了', 'pill');
+    check('checkup', CHECKUP_INTERVAL_DAYS, '该体检了', 'stethoscope');
+    check('dental', DENTAL_INTERVAL_DAYS, '该洁牙了', 'tooth-outline');
+    check('bath', BATH_INTERVAL_DAYS, '该洗澡了', 'shower-head');
+    check('grooming', GROOMING_INTERVAL_DAYS, '该修剪毛发了', 'content-cut');
+    check('nail', NAIL_INTERVAL_DAYS, '该剪指甲了', 'hand-back-right-outline');
     setReminders(rems);
-  }, [currentPetId]);
+
+    // Load calendar marks
+    loadCalendarMarks(targetId, calYear, calMonth);
+    // Load selected date records
+    loadSelectedDateRecords(targetId, selectedDate);
+  }, [currentPetId, calYear, calMonth, selectedDate]);
+
+  const loadCalendarMarks = useCallback((petId: number, year: number, month: number) => {
+    const recordDates = recordRepository.getRecordDatesInMonth(petId, year, month);
+    const moodDates = moodRepository.getMoodDatesInMonth(petId, year, month);
+    const checkins = checkinRepository.getByMonth(petId, year, month);
+
+    const marks: { [d: string]: { dotColor?: string; marked?: boolean } } = {};
+    recordDates.forEach((d) => { marks[d] = { dotColor: colors.primary, marked: true }; });
+    moodDates.forEach((d) => { marks[d] = { dotColor: colors.secondary, marked: true }; });
+    checkins.forEach((c) => { marks[c.checkin_date] = { dotColor: colors.success, marked: true }; });
+    setMarkedDates(marks);
+  }, []);
+
+  const loadSelectedDateRecords = useCallback((petId: number, dateStr: string) => {
+    const recs = recordRepository.getByPetIdAndDate(petId, dateStr);
+    setSelectedDateRecords(recs);
+  }, []);
 
   useFocusEffect(loadData);
+
+  const handleDayPress = (dateStr: string) => {
+    setSelectedDate(dateStr);
+    if (currentPetId) loadSelectedDateRecords(currentPetId, dateStr);
+  };
+
+  const handleCheckin = () => {
+    if (!currentPetId) return;
+    checkinRepository.checkin(currentPetId);
+    setIsCheckedin(true);
+    setStreak(checkinRepository.getStreak(currentPetId));
+    loadCalendarMarks(currentPetId, calYear, calMonth);
+    Alert.alert('打卡成功', `连续打卡 ${checkinRepository.getStreak(currentPetId)} 天`);
+  };
+
+  const handleCalendarMonthChange = (year: number, month: number) => {
+    setCalYear(year);
+    setCalMonth(month);
+    if (currentPetId) loadCalendarMarks(currentPetId, year, month);
+  };
 
   if (pets.length === 0) {
     return (
@@ -93,11 +132,13 @@ export default function TodayScreen() {
 
   const genderLabel = currentPet?.gender === 'male' ? '♂ 公' : currentPet?.gender === 'female' ? '♀ 母' : '';
   const neuteredLabel = currentPet?.is_neutered === 'yes' ? '已绝育' : '';
+  const isToday = selectedDate === formatDateStr(new Date());
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <PetSwitcher pets={pets} selectedId={currentPetId} onSelect={setCurrentPetId} />
 
+      {/* Pet info + checkin */}
       <Card style={styles.infoCard}>
         <View style={styles.infoHeader}>
           <View style={[styles.petAvatar, { backgroundColor: colors.primaryLight }]}>
@@ -116,12 +157,71 @@ export default function TodayScreen() {
               {neuteredLabel ? ` · ${neuteredLabel}` : ''}
             </Text>
           </View>
+          <TouchableOpacity
+            style={[styles.checkinBtn, isCheckedin && styles.checkinBtnDone]}
+            onPress={handleCheckin}
+            disabled={isCheckedin}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons
+              name={isCheckedin ? 'check-circle' : 'calendar-check'}
+              size={20}
+              color={isCheckedin ? colors.card : colors.primary}
+            />
+            <Text style={[styles.checkinText, isCheckedin && styles.checkinTextDone]}>
+              {isCheckedin ? '已打卡' : '打卡'}
+            </Text>
+          </TouchableOpacity>
         </View>
+        {streak > 0 && (
+          <View style={styles.streakRow}>
+            <MaterialCommunityIcons name="fire" size={16} color={colors.warning} />
+            <Text style={styles.streakText}>连续打卡 {streak} 天</Text>
+          </View>
+        )}
       </Card>
 
+      {/* Calendar */}
+      <View style={{ marginTop: spacing.md }}>
+        <Calendar
+          onDayPress={handleDayPress}
+          markedDates={markedDates}
+          selectedDate={selectedDate}
+          onMonthChange={handleCalendarMonthChange}
+        />
+      </View>
+
+      {/* Selected date records */}
+      <Card style={{ marginTop: spacing.md }}>
+        <Text style={styles.sectionTitle}>
+          {isToday ? '今日记录' : `${selectedDate} 的记录`}
+        </Text>
+        {selectedDateRecords.length === 0 ? (
+          <Text style={styles.emptyHint}>{isToday ? '今天还没有记录' : '该日无记录'}</Text>
+        ) : (
+          selectedDateRecords.map((r) => (
+            <TouchableOpacity
+              key={r.id}
+              style={styles.dateRecordRow}
+              onPress={() => router.push({ pathname: '/add-record', params: { petId: String(r.pet_id), recordId: String(r.id) } })}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="circle-small" size={20} color={colors.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.dateRecordTitle}>{r.title}</Text>
+                <Text style={styles.dateRecordMeta}>
+                  {r.value_text ? `${r.value_text} · ` : ''}{r.recorded_at.slice(11, 16)}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </Card>
+
+      {/* Reminders */}
       {reminders.length > 0 && (
         <Card style={styles.reminderCard}>
-          <Text style={styles.sectionTitle}>今日提醒</Text>
+          <Text style={styles.sectionTitle}>提醒事项</Text>
           {reminders.map((r, i) => (
             <View key={i} style={styles.reminderRow}>
               <MaterialCommunityIcons name={r.icon} size={20} color={colors.warning} />
@@ -131,6 +231,7 @@ export default function TodayScreen() {
         </Card>
       )}
 
+      {/* Quick entries */}
       <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>快捷入口</Text>
       <View style={styles.quickGrid}>
         <QuickEntry icon="needle" label="疫苗" color={colors.vaccine}
@@ -170,20 +271,6 @@ export default function TodayScreen() {
         <View style={{ flex: 1 }} />
         <View style={{ flex: 1 }} />
       </View>
-
-      <Text style={[styles.sectionTitle, { marginTop: spacing.lg }]}>最近记录</Text>
-      {recentRecords.length === 0 ? (
-        <Text style={styles.emptyHint}>暂无记录，点击上方入口添加</Text>
-      ) : (
-        recentRecords.map((r) => (
-          <Card key={r.id} style={styles.recordItem}>
-            <Text style={styles.recordTitle}>{r.title}</Text>
-            <Text style={styles.recordMeta}>
-              {r.value_text ? `${r.value_text} · ` : ''}{r.recorded_at.slice(0, 10)}
-            </Text>
-          </Card>
-        ))
-      )}
     </ScrollView>
   );
 }
@@ -197,15 +284,31 @@ const styles = StyleSheet.create({
   infoText: { flex: 1 },
   petName: { fontSize: 20, fontWeight: '800', color: colors.text },
   petMeta: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
-  reminderCard: { marginTop: spacing.md, backgroundColor: colors.reminderBg },
+  checkinBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: colors.card,
+  },
+  checkinBtnDone: { backgroundColor: colors.success, borderColor: colors.success },
+  checkinText: { fontSize: 13, fontWeight: '700', color: colors.primary },
+  checkinTextDone: { color: colors.card },
+  streakRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm },
+  streakText: { fontSize: 13, fontWeight: '700', color: colors.warning },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
+  reminderCard: { marginTop: spacing.md, backgroundColor: colors.reminderBg },
   reminderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
   reminderText: { fontSize: 14, color: colors.text, fontWeight: '600' },
   quickGrid: { flexDirection: 'row', gap: spacing.sm },
   emptyHint: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.md },
-  recordItem: { marginBottom: spacing.sm, padding: spacing.md },
-  recordTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
-  recordMeta: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  dateRecordRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xs },
+  dateRecordTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
+  dateRecordMeta: { fontSize: 12, color: colors.textSecondary, marginTop: 1 },
   emptyBtn: {
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.xl,
