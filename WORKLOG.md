@@ -16,10 +16,11 @@
 - [x] 宠物切换组件（PetSwitcher）
 - [x] 种子数据（Mimi + 旺财及示例记录）
 
-## 未完成 / 待确认
-- [ ] app.json 里 name/slug 仍是 "new-project"，可改为正式名称
-- [ ] 无远程仓库（git remote 为空）
-- [ ] 未配置 app icon / splash 为宠物主题
+## 已完成（2026-05-07）
+- [x] App 正式命名「猫狗日记」（app.json name/slug/scheme/package 全部更新）
+- [x] App 图标 — 粉色渐变背景 + 白色爪印（icon/adaptive-icon/favicon/monochrome）
+- [x] 启动屏 — 浅粉底色 + 粉色爪印
+- [x] 远程仓库 — https://github.com/cgping75/cat-dog-diary
 
 ## 已完成任务（2026-05-05 第二轮）
 - [x] 7. 添加猫狗品种库（lib/breedData.ts）— 20种猫+22种狗，中文名称，品种选择器
@@ -73,5 +74,11 @@
   - 今日无待办时显示下一日期待办项目
   - 管理打卡项目面板（展开/收起、新增自定义项、删除自定义项）
 
+- [x] 16. 布局重构 + Tab触摸修复
+  - 修复底部Tab栏触摸不灵敏：移除position:absolute、圆角、elevation阴影
+  - 宠物切换移到今日页面顶部header栏（与标题同行，胶囊按钮）
+  - 日历更换底图 + 管理打卡项目移至「我的」→「日历设置」独立页面
+  - 今日页面自定义header（隐藏系统header，自绘标题+宠物切换）
+
 ## 最后更新
-2026-05-06
+2026-05-07
