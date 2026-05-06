@@ -27,7 +27,23 @@
       "Bash(adb kill-server *)",
       "Bash(adb start-server *)",
       "Bash(adb install *)",
-      "Bash(adb uninstall *)"
+      "Bash(adb uninstall *)",
+      "Bash(adb push *)",
+      "PowerShell(adb shell *)",
+      "PowerShell(adb push *)",
+      "PowerShell(adb uninstall *)",
+      "PowerShell(adb install *)",
+      "Bash(git commit *)",
+      "Bash(powershell *)",
+      "WebSearch",
+      "Bash(node *)",
+      "Bash(npm install *)",
+      "Bash(gh auth *)",
+      "Bash(gh api *)",
+      "Bash(gh repo *)",
+      "Bash(git push *)",
+      "Bash(git rm *)",
+      "Bash(eas *)"
     ]
   }
 }

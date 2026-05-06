@@ -46,6 +46,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "63c3e986-cb29-47e3-b62b-25e3df376210"
+      }
+    },
+    "owner": "cgping75"
   }
 }

@@ -15,6 +15,10 @@ export default function RootLayout() {
       <Stack.Screen name="add-record" options={{ title: '添加记录' }} />
       <Stack.Screen name="quiz" options={{ title: '养宠知识考核' }} />
       <Stack.Screen name="quiz-result" options={{ title: '考核结果', headerBackVisible: false }} />
+      <Stack.Screen name="mood-tracker" options={{ title: '情绪追踪' }} />
+      <Stack.Screen name="calendar-full" options={{ headerShown: false }} />
+      <Stack.Screen name="calendar-settings" options={{ headerShown: false }} />
+      <Stack.Screen name="diet-guide" options={{ title: '饮食指南' }} />
     </Stack>
   );
 }
