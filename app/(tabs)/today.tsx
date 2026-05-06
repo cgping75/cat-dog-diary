@@ -5,9 +5,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository, PetRecord } from '@/lib/recordRepository';
 import { checkinRepository } from '@/lib/checkinRepository';
+import { todoRepository, TodoItem } from '@/lib/todoRepository';
 import { colors, borderRadius, spacing } from '@/lib/theme';
 import { daysBetween, VACCINE_INTERVAL_DAYS, DEWORM_INTERVAL_DAYS, CHECKUP_INTERVAL_DAYS, DENTAL_INTERVAL_DAYS, BATH_INTERVAL_DAYS, GROOMING_INTERVAL_DAYS, NAIL_INTERVAL_DAYS } from '@/lib/dateUtils';
+import { formatDateStr } from '@/lib/calendarUtils';
+import { estimateWeather, getInteractionSuggestion } from '@/lib/interactionData';
 import Card from '@/components/Card';
+import CalendarWindowCard from '@/components/CalendarWindowCard';
 import PetSwitcher from '@/components/PetSwitcher';
 import QuickEntry from '@/components/QuickEntry';
 import EmptyState from '@/components/EmptyState';
@@ -20,6 +24,8 @@ export default function TodayScreen() {
   const [reminders, setReminders] = useState<{ text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[]>([]);
   const [isCheckedin, setIsCheckedin] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [todayTodos, setTodayTodos] = useState<TodoItem[]>([]);
+  const [nextTodo, setNextTodo] = useState<TodoItem | null>(null);
 
   const loadData = useCallback(() => {
     const allPets = petRepository.getAll();
@@ -32,6 +38,8 @@ export default function TodayScreen() {
       setReminders([]);
       setIsCheckedin(false);
       setStreak(0);
+      setTodayTodos([]);
+      setNextTodo(null);
       return;
     }
 
@@ -45,6 +53,18 @@ export default function TodayScreen() {
     setIsCheckedin(checkinRepository.isCheckedinToday(targetId));
     setStreak(checkinRepository.getStreak(targetId));
 
+    // Today's todos
+    const today = formatDateStr(new Date());
+    const dayTodos = todoRepository.getByDate(targetId, today);
+    setTodayTodos(dayTodos);
+
+    // Next upcoming todo (not today, not done)
+    const upcoming = todoRepository.getUpcoming(targetId, 5);
+    const todayStr = formatDateStr(new Date());
+    const nextUpcoming = upcoming.find((t) => t.due_date > todayStr) || null;
+    setNextTodo(nextUpcoming);
+
+    // Build reminders
     const rems: { text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [];
     const now = new Date();
     const check = (type: string, interval: number, msg: string, icon: keyof typeof MaterialCommunityIcons.glyphMap) => {
@@ -75,7 +95,6 @@ export default function TodayScreen() {
 
   const handleQuickCheckin = () => {
     handleCheckin();
-    // Navigate to full calendar after checkin
     router.push({ pathname: '/calendar-full', params: { petId: String(currentPetId) } });
   };
 
@@ -90,20 +109,60 @@ export default function TodayScreen() {
     );
   }
 
-  const genderLabel = currentPet?.gender === 'male' ? '♂ 公' : currentPet?.gender === 'female' ? '♀ 母' : '';
-  const neuteredLabel = currentPet?.is_neutered === 'yes' ? '已绝育' : '';
+  const weather = estimateWeather();
+  const suggestion = getInteractionSuggestion(currentPet);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <PetSwitcher pets={pets} selectedId={currentPetId} onSelect={setCurrentPetId} />
 
-      {/* Pet info card */}
+      {/* Calendar Window Card */}
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => router.push({ pathname: '/calendar-full', params: { petId: String(currentPetId) } })}
+      >
+        <CalendarWindowCard
+          isCheckedin={isCheckedin}
+          streak={streak}
+          todayTodos={todayTodos}
+          nextTodo={nextTodo}
+          weatherLabel={weather.label}
+          weatherIcon={weather.icon}
+          weatherTemp={weather.temp}
+          suggestionTitle={suggestion.title}
+          suggestionContent={suggestion.content}
+          suggestionIcon={suggestion.icon}
+        />
+      </TouchableOpacity>
+
+      {/* Checkin button row */}
+      <TouchableOpacity
+        style={[styles.checkinBar, isCheckedin && styles.checkinBarDone]}
+        onPress={handleQuickCheckin}
+        activeOpacity={0.7}
+      >
+        <MaterialCommunityIcons
+          name={isCheckedin ? 'check-circle' : 'calendar-check'}
+          size={22}
+          color={isCheckedin ? colors.card : colors.primary}
+        />
+        <Text style={[styles.checkinBarText, isCheckedin && styles.checkinBarTextDone]}>
+          {isCheckedin ? `已打卡 · 连续${streak}天` : '立即打卡'}
+        </Text>
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={20}
+          color={isCheckedin ? colors.card : colors.primary}
+        />
+      </TouchableOpacity>
+
+      {/* Pet info compact */}
       <Card style={styles.infoCard}>
         <View style={styles.infoHeader}>
           <View style={[styles.petAvatar, { backgroundColor: colors.primaryLight }]}>
             <MaterialCommunityIcons
               name={currentPet?.pet_type === 'cat' ? 'cat' : 'dog'}
-              size={32}
+              size={28}
               color={colors.primary}
             />
           </View>
@@ -111,39 +170,12 @@ export default function TodayScreen() {
             <Text style={styles.petName}>{currentPet?.name}</Text>
             <Text style={styles.petMeta}>
               {currentPet?.breed || (currentPet?.pet_type === 'cat' ? '猫' : '狗')}
-              {genderLabel ? ` · ${genderLabel}` : ''}
+              {currentPet?.gender === 'male' ? ' · ♂公' : currentPet?.gender === 'female' ? ' · ♀母' : ''}
               {currentPet?.age_text ? ` · ${currentPet.age_text}` : ''}
-              {neuteredLabel ? ` · ${neuteredLabel}` : ''}
               {currentPet?.weight ? ` · ${currentPet.weight}kg` : ''}
             </Text>
           </View>
-          <TouchableOpacity
-            style={[styles.checkinBtn, isCheckedin && styles.checkinBtnDone]}
-            onPress={handleQuickCheckin}
-            activeOpacity={0.7}
-          >
-            <MaterialCommunityIcons
-              name={isCheckedin ? 'check-circle' : 'calendar-check'}
-              size={20}
-              color={isCheckedin ? colors.card : colors.primary}
-            />
-            <Text style={[styles.checkinText, isCheckedin && styles.checkinTextDone]}>
-              {isCheckedin ? '已打卡' : '打卡'}
-            </Text>
-          </TouchableOpacity>
         </View>
-        {/* Streak - clickable to calendar */}
-        <TouchableOpacity
-          style={styles.streakRow}
-          onPress={() => router.push({ pathname: '/calendar-full', params: { petId: String(currentPetId) } })}
-          activeOpacity={0.6}
-        >
-          <MaterialCommunityIcons name="fire" size={16} color={streak > 0 ? colors.warning : colors.textSecondary} />
-          <Text style={[styles.streakText, streak === 0 && { color: colors.textSecondary }]}>
-            {streak > 0 ? `连续打卡 ${streak} 天` : '点击进入日历'}
-          </Text>
-          <MaterialCommunityIcons name="chevron-right" size={16} color={colors.textSecondary} />
-        </TouchableOpacity>
       </Card>
 
       {/* Reminders */}
@@ -228,27 +260,26 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: spacing.xl },
+  checkinBar: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.card, borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+    marginTop: spacing.sm,
+    borderWidth: 1.5, borderColor: colors.primary,
+    shadowColor: '#FF7EB3', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
+  },
+  checkinBarDone: {
+    backgroundColor: colors.success, borderColor: colors.success,
+  },
+  checkinBarText: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.primary },
+  checkinBarTextDone: { color: colors.card },
   infoCard: { marginTop: spacing.sm },
   infoHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  petAvatar: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', shadowColor: '#FF7EB3', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8 },
+  petAvatar: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
   infoText: { flex: 1 },
-  petName: { fontSize: 20, fontWeight: '800', color: colors.text },
+  petName: { fontSize: 18, fontWeight: '800', color: colors.text },
   petMeta: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
-  checkinBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full, borderWidth: 1.5,
-    borderColor: colors.primary, backgroundColor: colors.card,
-  },
-  checkinBtnDone: { backgroundColor: colors.success, borderColor: colors.success },
-  checkinText: { fontSize: 13, fontWeight: '700', color: colors.primary },
-  checkinTextDone: { color: colors.card },
-  streakRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    marginTop: spacing.sm, paddingTop: spacing.sm,
-    borderTopWidth: 1, borderTopColor: colors.border,
-  },
-  streakText: { fontSize: 13, fontWeight: '700', color: colors.warning, flex: 1 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
   reminderCard: { marginTop: spacing.md, backgroundColor: colors.reminderBg },
   reminderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
