@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository, PetRecord } from '@/lib/recordRepository';
-import { checkinRepository } from '@/lib/checkinRepository';
+import { checkinRepository, CheckinItemWithStatus } from '@/lib/checkinRepository';
 import { todoRepository, TodoItem } from '@/lib/todoRepository';
 import { colors, borderRadius, spacing } from '@/lib/theme';
 import { daysBetween, VACCINE_INTERVAL_DAYS, DEWORM_INTERVAL_DAYS, CHECKUP_INTERVAL_DAYS, DENTAL_INTERVAL_DAYS, BATH_INTERVAL_DAYS, GROOMING_INTERVAL_DAYS, NAIL_INTERVAL_DAYS } from '@/lib/dateUtils';
@@ -22,10 +22,12 @@ export default function TodayScreen() {
   const [currentPet, setCurrentPet] = useState<Pet | null>(null);
   const [recentRecords, setRecentRecords] = useState<PetRecord[]>([]);
   const [reminders, setReminders] = useState<{ text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[]>([]);
-  const [isCheckedin, setIsCheckedin] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [checkinItems, setCheckinItems] = useState<CheckinItemWithStatus[]>([]);
   const [todayTodos, setTodayTodos] = useState<TodoItem[]>([]);
   const [nextTodo, setNextTodo] = useState<TodoItem | null>(null);
+  const [showAddCheckin, setShowAddCheckin] = useState(false);
+  const [newCheckinLabel, setNewCheckinLabel] = useState('');
 
   const loadData = useCallback(() => {
     const allPets = petRepository.getAll();
@@ -36,8 +38,8 @@ export default function TodayScreen() {
       setCurrentPet(null);
       setRecentRecords([]);
       setReminders([]);
-      setIsCheckedin(false);
       setStreak(0);
+      setCheckinItems([]);
       setTodayTodos([]);
       setNextTodo(null);
       return;
@@ -50,21 +52,15 @@ export default function TodayScreen() {
     const pet = petRepository.getById(targetId);
     setCurrentPet(pet);
     setRecentRecords(recordRepository.getRecentByPetId(targetId, 3));
-    setIsCheckedin(checkinRepository.isCheckedinToday(targetId));
     setStreak(checkinRepository.getStreak(targetId));
+    setCheckinItems(checkinRepository.getItemsWithStatus(targetId));
 
-    // Today's todos
     const today = formatDateStr(new Date());
-    const dayTodos = todoRepository.getByDate(targetId, today);
-    setTodayTodos(dayTodos);
-
-    // Next upcoming todo (not today, not done)
+    setTodayTodos(todoRepository.getByDate(targetId, today));
     const upcoming = todoRepository.getUpcoming(targetId, 5);
-    const todayStr = formatDateStr(new Date());
-    const nextUpcoming = upcoming.find((t) => t.due_date > todayStr) || null;
+    const nextUpcoming = upcoming.find((t) => t.due_date > today) || null;
     setNextTodo(nextUpcoming);
 
-    // Build reminders
     const rems: { text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [];
     const now = new Date();
     const check = (type: string, interval: number, msg: string, icon: keyof typeof MaterialCommunityIcons.glyphMap) => {
@@ -86,16 +82,32 @@ export default function TodayScreen() {
 
   useFocusEffect(loadData);
 
-  const handleCheckin = () => {
-    if (!currentPetId) return;
-    checkinRepository.checkin(currentPetId);
-    setIsCheckedin(true);
+  const handleToggleCheckin = (itemId: number) => {
+    checkinRepository.toggleCheckin(currentPetId, itemId);
+    setCheckinItems(checkinRepository.getItemsWithStatus(currentPetId));
     setStreak(checkinRepository.getStreak(currentPetId));
   };
 
-  const handleQuickCheckin = () => {
-    handleCheckin();
-    router.push({ pathname: '/calendar-full', params: { petId: String(currentPetId) } });
+  const handleAddCheckin = () => {
+    if (!newCheckinLabel.trim()) return;
+    const ok = checkinRepository.addItem(currentPetId, newCheckinLabel.trim());
+    if (!ok) {
+      Alert.alert('提示', '自定义打卡项最多3个');
+      return;
+    }
+    setNewCheckinLabel('');
+    setShowAddCheckin(false);
+    setCheckinItems(checkinRepository.getItemsWithStatus(currentPetId));
+  };
+
+  const handleRemoveCheckin = (itemId: number, label: string) => {
+    Alert.alert('删除打卡项', `确定删除「${label}」？`, [
+      { text: '取消', style: 'cancel' },
+      { text: '删除', style: 'destructive', onPress: () => {
+        checkinRepository.removeItem(itemId);
+        setCheckinItems(checkinRepository.getItemsWithStatus(currentPetId));
+      }},
+    ]);
   };
 
   if (pets.length === 0) {
@@ -116,14 +128,15 @@ export default function TodayScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <PetSwitcher pets={pets} selectedId={currentPetId} onSelect={setCurrentPetId} />
 
-      {/* Calendar Window Card */}
+      {/* Calendar Window Card — tap to full calendar */}
       <TouchableOpacity
-        activeOpacity={0.85}
+        activeOpacity={0.9}
         onPress={() => router.push({ pathname: '/calendar-full', params: { petId: String(currentPetId) } })}
       >
         <CalendarWindowCard
-          isCheckedin={isCheckedin}
+          pet={currentPet}
           streak={streak}
+          checkinItems={checkinItems}
           todayTodos={todayTodos}
           nextTodo={nextTodo}
           weatherLabel={weather.label}
@@ -132,50 +145,49 @@ export default function TodayScreen() {
           suggestionTitle={suggestion.title}
           suggestionContent={suggestion.content}
           suggestionIcon={suggestion.icon}
+          onToggleCheckin={handleToggleCheckin}
         />
       </TouchableOpacity>
 
-      {/* Checkin button row */}
-      <TouchableOpacity
-        style={[styles.checkinBar, isCheckedin && styles.checkinBarDone]}
-        onPress={handleQuickCheckin}
-        activeOpacity={0.7}
-      >
-        <MaterialCommunityIcons
-          name={isCheckedin ? 'check-circle' : 'calendar-check'}
-          size={22}
-          color={isCheckedin ? colors.card : colors.primary}
-        />
-        <Text style={[styles.checkinBarText, isCheckedin && styles.checkinBarTextDone]}>
-          {isCheckedin ? `已打卡 · 连续${streak}天` : '立即打卡'}
-        </Text>
-        <MaterialCommunityIcons
-          name="chevron-right"
-          size={20}
-          color={isCheckedin ? colors.card : colors.primary}
-        />
-      </TouchableOpacity>
-
-      {/* Pet info compact */}
-      <Card style={styles.infoCard}>
-        <View style={styles.infoHeader}>
-          <View style={[styles.petAvatar, { backgroundColor: colors.primaryLight }]}>
-            <MaterialCommunityIcons
-              name={currentPet?.pet_type === 'cat' ? 'cat' : 'dog'}
-              size={28}
-              color={colors.primary}
-            />
+      {/* Manage custom checkin items */}
+      <Card style={styles.manageCard}>
+        <TouchableOpacity
+          style={styles.manageHeader}
+          onPress={() => setShowAddCheckin(!showAddCheckin)}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons name="cog-outline" size={16} color={colors.textSecondary} />
+          <Text style={styles.manageText}>管理打卡项目</Text>
+          <MaterialCommunityIcons name={showAddCheckin ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textSecondary} />
+        </TouchableOpacity>
+        {showAddCheckin && (
+          <View style={styles.manageBody}>
+            <View style={styles.addItemRow}>
+              <TextInput
+                style={styles.addItemInput}
+                value={newCheckinLabel}
+                onChangeText={setNewCheckinLabel}
+                placeholder="新增打卡项（最多3个自定义）"
+                placeholderTextColor={colors.textSecondary}
+                maxLength={10}
+              />
+              <TouchableOpacity style={styles.addItemBtn} onPress={handleAddCheckin}>
+                <MaterialCommunityIcons name="plus" size={18} color={colors.card} />
+              </TouchableOpacity>
+            </View>
+            {checkinItems.filter((i) => !i.is_system).length === 0 && (
+              <Text style={styles.manageHint}>暂无自定义打卡项</Text>
+            )}
+            {checkinItems.filter((i) => !i.is_system).map((item) => (
+              <View key={item.id} style={styles.manageItemRow}>
+                <Text style={styles.manageItemLabel}>{item.label}</Text>
+                <TouchableOpacity onPress={() => handleRemoveCheckin(item.id, item.label)}>
+                  <MaterialCommunityIcons name="close-circle-outline" size={18} color={colors.error} />
+                </TouchableOpacity>
+              </View>
+            ))}
           </View>
-          <View style={styles.infoText}>
-            <Text style={styles.petName}>{currentPet?.name}</Text>
-            <Text style={styles.petMeta}>
-              {currentPet?.breed || (currentPet?.pet_type === 'cat' ? '猫' : '狗')}
-              {currentPet?.gender === 'male' ? ' · ♂公' : currentPet?.gender === 'female' ? ' · ♀母' : ''}
-              {currentPet?.age_text ? ` · ${currentPet.age_text}` : ''}
-              {currentPet?.weight ? ` · ${currentPet.weight}kg` : ''}
-            </Text>
-          </View>
-        </View>
+        )}
       </Card>
 
       {/* Reminders */}
@@ -260,26 +272,31 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: spacing.xl },
-  checkinBar: {
+  manageCard: { marginTop: spacing.sm, paddingVertical: 0, paddingHorizontal: 0 },
+  manageHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+  },
+  manageText: { flex: 1, fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  manageBody: {
+    paddingHorizontal: spacing.md, paddingBottom: spacing.md,
+    borderTopWidth: 1, borderTopColor: colors.border, gap: spacing.sm,
+  },
+  addItemRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  addItemInput: {
+    flex: 1, borderWidth: 1.5, borderColor: colors.border, borderRadius: 12,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    fontSize: 14, color: colors.text, backgroundColor: colors.background,
+  },
+  addItemBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  manageHint: { fontSize: 12, color: colors.textSecondary },
+  manageItemRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    backgroundColor: colors.card, borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
-    marginTop: spacing.sm,
-    borderWidth: 1.5, borderColor: colors.primary,
-    shadowColor: '#FF7EB3', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
   },
-  checkinBarDone: {
-    backgroundColor: colors.success, borderColor: colors.success,
-  },
-  checkinBarText: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.primary },
-  checkinBarTextDone: { color: colors.card },
-  infoCard: { marginTop: spacing.sm },
-  infoHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  petAvatar: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-  infoText: { flex: 1 },
-  petName: { fontSize: 18, fontWeight: '800', color: colors.text },
-  petMeta: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  manageItemLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.text },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
   reminderCard: { marginTop: spacing.md, backgroundColor: colors.reminderBg },
   reminderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },

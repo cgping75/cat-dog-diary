@@ -27,7 +27,6 @@ export default function CalendarFullScreen() {
   const [upcomingTodos, setUpcomingTodos] = useState<TodoItem[]>([]);
   const [overdueTodos, setOverdueTodos] = useState<TodoItem[]>([]);
   const [streak, setStreak] = useState(0);
-  const [isCheckedin, setIsCheckedin] = useState(false);
   const [showAddTodo, setShowAddTodo] = useState(false);
   const [todoTitle, setTodoTitle] = useState('');
   const [reminders, setReminders] = useState<{ text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[]>([]);
@@ -37,7 +36,6 @@ export default function CalendarFullScreen() {
     const p = petRepository.getById(petId);
     setPet(p);
     setStreak(checkinRepository.getStreak(petId));
-    setIsCheckedin(checkinRepository.isCheckedinToday(petId));
     loadCalendarData(calYear, calMonth);
     loadDayData(selectedDate);
     loadTodos();
@@ -67,13 +65,11 @@ export default function CalendarFullScreen() {
   const loadCalendarData = useCallback((year: number, month: number) => {
     const recordDates = recordRepository.getRecordDatesInMonth(petId, year, month);
     const moodDates = moodRepository.getMoodDatesInMonth(petId, year, month);
-    const checkins = checkinRepository.getByMonth(petId, year, month);
     const todoDates = todoRepository.getTodoDatesInMonth(petId, year, month);
 
     const marks: { [d: string]: { dotColor?: string; marked?: boolean } } = {};
     recordDates.forEach((d) => { marks[d] = { dotColor: colors.primary, marked: true }; });
     moodDates.forEach((d) => { marks[d] = { dotColor: colors.secondary, marked: true }; });
-    checkins.forEach((c) => { marks[c.checkin_date] = { dotColor: colors.success, marked: true }; });
     todoDates.forEach((_, d) => { marks[d] = { dotColor: colors.warning, marked: true }; });
     setMarkedDates(marks);
   }, [petId]);
@@ -102,11 +98,8 @@ export default function CalendarFullScreen() {
   };
 
   const handleCheckin = () => {
-    checkinRepository.checkin(petId);
-    setIsCheckedin(true);
-    setStreak(checkinRepository.getStreak(petId));
-    loadCalendarData(calYear, calMonth);
-    Alert.alert('打卡成功', `连续打卡 ${checkinRepository.getStreak(petId)} 天`);
+    // Navigate back to today for checkin (checkin is now item-based in today page)
+    router.back();
   };
 
   const handleAddTodo = () => {
@@ -150,12 +143,11 @@ export default function CalendarFullScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{pet?.name}的日历</Text>
         <TouchableOpacity
-          style={[styles.checkinBtn, isCheckedin && styles.checkinBtnDone]}
+          style={styles.checkinBtn}
           onPress={handleCheckin}
-          disabled={isCheckedin}
         >
-          <MaterialCommunityIcons name={isCheckedin ? 'check-circle' : 'calendar-check'} size={18} color={isCheckedin ? colors.card : colors.primary} />
-          <Text style={[styles.checkinText, isCheckedin && styles.checkinTextDone]}>{isCheckedin ? '已打卡' : '打卡'}</Text>
+          <MaterialCommunityIcons name="calendar-check" size={18} color={colors.primary} />
+          <Text style={styles.checkinText}>去打卡</Text>
         </TouchableOpacity>
       </View>
 
@@ -325,9 +317,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full, borderWidth: 1.5,
     borderColor: colors.primary, backgroundColor: colors.card,
   },
-  checkinBtnDone: { backgroundColor: colors.success, borderColor: colors.success },
   checkinText: { fontSize: 13, fontWeight: '700', color: colors.primary },
-  checkinTextDone: { color: colors.card },
   streakBar: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: colors.warning + '15', borderRadius: borderRadius.md,
