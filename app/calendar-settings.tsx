@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { checkinRepository, CheckinItemWithStatus } from '@/lib/checkinRepository';
+import { getCityName, setCityName } from '@/lib/interactionData';
 import { colors, borderRadius, spacing } from '@/lib/theme';
 import Card from '@/components/Card';
 
@@ -15,6 +16,8 @@ export default function CalendarSettingsScreen() {
   const [checkinItems, setCheckinItems] = useState<CheckinItemWithStatus[]>([]);
   const [showAddCheckin, setShowAddCheckin] = useState(false);
   const [newCheckinLabel, setNewCheckinLabel] = useState('');
+  const [city, setCity] = useState('');
+  const [cityInput, setCityInput] = useState('');
 
   const loadData = useCallback(() => {
     const allPets = petRepository.getAll();
@@ -25,6 +28,10 @@ export default function CalendarSettingsScreen() {
       setCurrentPetId(targetId);
       setCheckinItems(checkinRepository.getItemsWithStatus(targetId));
     }
+    getCityName().then((c) => {
+      setCity(c);
+      setCityInput(c);
+    });
   }, [currentPetId]);
 
   useFocusEffect(loadData);
@@ -70,6 +77,13 @@ export default function CalendarSettingsScreen() {
     ]);
   };
 
+  const handleSaveCity = async () => {
+    const trimmed = cityInput.trim();
+    await setCityName(trimmed);
+    setCity(trimmed);
+    Alert.alert('成功', trimmed ? `城市已设置为「${trimmed}」` : '已清除城市设置');
+  };
+
   const systemItems = checkinItems.filter((i) => i.is_system);
   const customItems = checkinItems.filter((i) => !i.is_system);
 
@@ -93,6 +107,31 @@ export default function CalendarSettingsScreen() {
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
+      </Card>
+
+      {/* City setting */}
+      <Card style={{ marginTop: spacing.md }}>
+        <Text style={styles.sectionLabel}>所在城市</Text>
+        <Text style={styles.bgHint}>设置城市后日历卡片将显示当地天气</Text>
+        <View style={styles.addRow}>
+          <TextInput
+            style={styles.addInput}
+            value={cityInput}
+            onChangeText={setCityInput}
+            placeholder="输入城市名，如：上海"
+            placeholderTextColor={colors.textSecondary}
+            maxLength={20}
+          />
+          <TouchableOpacity style={styles.addBtn} onPress={handleSaveCity}>
+            <MaterialCommunityIcons name="check" size={18} color={colors.card} />
+          </TouchableOpacity>
+        </View>
+        {city !== '' && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm }}>
+            <MaterialCommunityIcons name="map-marker" size={16} color={colors.primary} />
+            <Text style={{ fontSize: 14, color: colors.text }}>当前：{city}</Text>
+          </View>
+        )}
       </Card>
 
       {/* Pet selector for checkin items */}

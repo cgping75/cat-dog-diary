@@ -1,4 +1,5 @@
 import { Pet } from './petRepository';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type WeatherType = 'sunny' | 'cloudy' | 'rainy' | 'cold' | 'hot' | 'windy';
 
@@ -8,28 +9,93 @@ export type InteractionSuggestion = {
   icon: string;
 };
 
+const CITY_KEY = 'user_city';
+
+let cachedCity = '';
+
+export async function getCityName(): Promise<string> {
+  if (cachedCity) return cachedCity;
+  try {
+    const stored = await AsyncStorage.getItem(CITY_KEY);
+    if (stored) cachedCity = stored;
+  } catch {}
+  return cachedCity;
+}
+
+export async function setCityName(city: string): Promise<void> {
+  cachedCity = city;
+  await AsyncStorage.setItem(CITY_KEY, city);
+}
+
 // Simple weather estimate based on month (no API needed)
 export function estimateWeather(): { type: WeatherType; label: string; icon: string; temp: string } {
   const month = new Date().getMonth(); // 0-11
   const hour = new Date().getHours();
 
   if (month >= 5 && month <= 8) {
-    // Summer
     if (hour >= 11 && hour <= 15) return { type: 'hot', label: '炎热', icon: 'weather-sunny', temp: '30°C+' };
     return { type: 'sunny', label: '晴朗', icon: 'weather-sunny', temp: '26°C' };
   }
   if (month >= 11 || month <= 1) {
-    // Winter
     return { type: 'cold', label: '寒冷', icon: 'weather-snowy', temp: '5°C' };
   }
   if (month >= 2 && month <= 4) {
-    // Spring
-    if (Math.random() > 0.6) return { type: 'rainy', label: '小雨', icon: 'weather-rainy', temp: '18°C' };
+    if (hour % 3 === 0) return { type: 'rainy', label: '小雨', icon: 'weather-rainy', temp: '18°C' };
     return { type: 'cloudy', label: '多云', icon: 'weather-cloudy', temp: '20°C' };
   }
-  // Autumn
-  if (Math.random() > 0.7) return { type: 'windy', label: '有风', icon: 'weather-windy', temp: '16°C' };
+  if (hour % 4 === 0) return { type: 'windy', label: '有风', icon: 'weather-windy', temp: '16°C' };
   return { type: 'cloudy', label: '多云', icon: 'weather-cloudy', temp: '18°C' };
+}
+
+// Try to fetch real weather for a city (uses geocoding + Open-Meteo, no API key)
+let cachedWeather: { type: WeatherType; label: string; icon: string; temp: string; city: string } | null = null;
+
+const weatherCodeToType: Record<number, { type: WeatherType; label: string; icon: string }> = {
+  0: { type: 'sunny', label: '晴朗', icon: 'weather-sunny' },
+  1: { type: 'sunny', label: '晴', icon: 'weather-sunny' },
+  2: { type: 'cloudy', label: '多云', icon: 'weather-cloudy' },
+  3: { type: 'cloudy', label: '阴天', icon: 'weather-cloudy' },
+  45: { type: 'cloudy', label: '有雾', icon: 'weather-fog' },
+  51: { type: 'rainy', label: '小雨', icon: 'weather-rainy' },
+  53: { type: 'rainy', label: '小雨', icon: 'weather-rainy' },
+  55: { type: 'rainy', label: '大雨', icon: 'weather-pouring' },
+  61: { type: 'rainy', label: '阵雨', icon: 'weather-rainy' },
+  63: { type: 'rainy', label: '中雨', icon: 'weather-pouring' },
+  65: { type: 'rainy', label: '大雨', icon: 'weather-pouring' },
+  71: { type: 'cold', label: '小雪', icon: 'weather-snowy' },
+  73: { type: 'cold', label: '中雪', icon: 'weather-snowy' },
+  75: { type: 'cold', label: '大雪', icon: 'weather-snowy-heavy' },
+  80: { type: 'rainy', label: '阵雨', icon: 'weather-rainy' },
+  95: { type: 'rainy', label: '雷阵雨', icon: 'weather-lightning-rainy' },
+};
+
+export async function fetchWeatherForCity(city: string): Promise<{ type: WeatherType; label: string; icon: string; temp: string; city: string } | null> {
+  if (!city) return null;
+  if (cachedWeather && cachedWeather.city === city) return cachedWeather;
+  try {
+    // Step 1: Geocode city name to lat/lon using Open-Meteo geocoding
+    const geoResp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh`);
+    const geoData = await geoResp.json();
+    if (!geoData.results || geoData.results.length === 0) return null;
+    const { latitude, longitude, name } = geoData.results[0];
+
+    // Step 2: Fetch current weather from Open-Meteo
+    const weatherResp = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m`);
+    const weatherData = await weatherResp.json();
+    const current = weatherData.current;
+    if (!current) return null;
+
+    const code = current.weather_code as number;
+    const mapped = weatherCodeToType[code] || { type: 'cloudy' as WeatherType, label: '未知', icon: 'weather-cloudy' };
+    cachedWeather = {
+      ...mapped,
+      temp: `${Math.round(current.temperature_2m)}°C`,
+      city: name,
+    };
+    return cachedWeather;
+  } catch {
+    return null;
+  }
 }
 
 const catSuggestions: Record<WeatherType, InteractionSuggestion[]> = {

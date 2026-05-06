@@ -88,5 +88,27 @@
   - 远程仓库：https://github.com/cgping75/cat-dog-diary
   - generate-icons.js — 图标生成脚本（sharp + SVG）
 
+- [x] 18. EAS Build 配置 + 生产APK闪退修复
+  - eas.json 配置 preview（APK）和 production（AAB）两个构建配置
+  - 第一次构建 → 闪退：`app/index.tsx` 使用 `useEffect(() => router.replace())` 导致 Root Layout 挂载前触发导航
+  - 尝试1：删除 index.tsx → "Unmatched Route" 错误
+  - 最终修复：`app/index.tsx` 使用声明式 `<Redirect href="/(tabs)/today" />` 替代 imperative 导航
+  - 同时在 `app/_layout.tsx` 注册所有 Stack.Screen（mood-tracker/calendar-full/calendar-settings/diet-guide）
+  - 构建ID: 92293ffe-833f-4f4f-b1ba-4a2aa09f2ec3
+  - APK: https://expo.dev/artifacts/eas/j3PupibJ71kaYmsgatTNMi.apk
+  - 真机验证：闪退问题已解决 ✅
+
+- [x] 19. 打卡系统迭代
+  - 系统固定项从3个（喂食/换水/铲屎）缩减为2个（陪伴互动/情绪观察）
+  - 改为情绪维护类打卡，标题改为「今日打卡」
+  - seedSystemItems 增加迁移逻辑：检测旧系统项不匹配时自动删除重建
+  - 日历窗口卡片：白色背景，移除宠物头像，支持用户自定义底图
+  - 底图质量提升（quality 0.7→1），覆盖层透明度调整（0.88→0.55）
+
+- [x] 20. 日历设置 + 我的页面整合
+  - 新增 calendar-settings.tsx 日历设置页面（底图管理+打卡项管理+宠物切换）
+  - mine.tsx 新增「日历设置」入口卡片
+  - 宠物切换从今日页面移至顶部header栏
+
 ## 最后更新
-2026-05-07
+2026-05-06

@@ -9,7 +9,7 @@ import { todoRepository, TodoItem } from '@/lib/todoRepository';
 import { colors, borderRadius, spacing } from '@/lib/theme';
 import { daysBetween, VACCINE_INTERVAL_DAYS, DEWORM_INTERVAL_DAYS, CHECKUP_INTERVAL_DAYS, DENTAL_INTERVAL_DAYS, BATH_INTERVAL_DAYS, GROOMING_INTERVAL_DAYS, NAIL_INTERVAL_DAYS } from '@/lib/dateUtils';
 import { formatDateStr } from '@/lib/calendarUtils';
-import { estimateWeather, getInteractionSuggestion } from '@/lib/interactionData';
+import { estimateWeather, getInteractionSuggestion, getCityName, fetchWeatherForCity } from '@/lib/interactionData';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Card from '@/components/Card';
 import CalendarWindowCard from '@/components/CalendarWindowCard';
@@ -27,6 +27,8 @@ export default function TodayScreen() {
   const [todayTodos, setTodayTodos] = useState<TodoItem[]>([]);
   const [nextTodo, setNextTodo] = useState<TodoItem | null>(null);
   const [calendarBgUri, setCalendarBgUri] = useState<string>('');
+  const [city, setCity] = useState<string>('');
+  const [realWeather, setRealWeather] = useState<{ label: string; icon: string; temp: string } | null>(null);
 
   const loadData = useCallback(() => {
     const allPets = petRepository.getAll();
@@ -81,6 +83,14 @@ export default function TodayScreen() {
     AsyncStorage.getItem('calendar_bg_uri').then((uri) => {
       if (uri) setCalendarBgUri(uri);
     });
+    getCityName().then((c) => {
+      setCity(c);
+      if (c) {
+        fetchWeatherForCity(c).then((w) => {
+          if (w) setRealWeather({ label: w.label, icon: w.icon, temp: w.temp });
+        });
+      }
+    });
   }, [currentPetId]);
 
   useFocusEffect(loadData);
@@ -106,7 +116,8 @@ export default function TodayScreen() {
     );
   }
 
-  const weather = estimateWeather();
+  const defaultWeather = estimateWeather();
+  const weather = realWeather || defaultWeather;
   const suggestion = getInteractionSuggestion(currentPet);
 
   return (
@@ -147,6 +158,7 @@ export default function TodayScreen() {
             weatherLabel={weather.label}
             weatherIcon={weather.icon}
             weatherTemp={weather.temp}
+            weatherCity={city}
             suggestionTitle={suggestion.title}
             suggestionContent={suggestion.content}
             suggestionIcon={suggestion.icon}

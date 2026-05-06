@@ -16,6 +16,7 @@ type CalendarWindowCardProps = {
   weatherLabel: string;
   weatherIcon: string;
   weatherTemp: string;
+  weatherCity: string;
   suggestionTitle: string;
   suggestionContent: string;
   suggestionIcon: string;
@@ -32,6 +33,7 @@ export default function CalendarWindowCard({
   weatherLabel,
   weatherIcon,
   weatherTemp,
+  weatherCity,
   suggestionTitle,
   suggestionContent,
   suggestionIcon,
@@ -167,6 +169,12 @@ export default function CalendarWindowCard({
       {/* Weather + suggestion */}
       <View style={styles.bottomSection}>
         <View style={styles.weatherRow}>
+          {weatherCity !== '' && (
+            <>
+              <MaterialCommunityIcons name="map-marker-outline" size={16} color="#8B7B6E" />
+              <Text style={styles.weatherText}>{weatherCity}</Text>
+            </>
+          )}
           <MaterialCommunityIcons
             name={weatherIcon as keyof typeof MaterialCommunityIcons.glyphMap}
             size={16}
