@@ -90,7 +90,7 @@ export default function CalendarWindowCard({
         <View style={styles.divider} />
 
         <View style={styles.checkinSection}>
-          <Text style={styles.checkinTitle}>情绪维护打卡</Text>
+          <Text style={styles.checkinTitle}>今日打卡</Text>
           {systemItems.map((item) => (
             <TouchableOpacity
               key={item.id}

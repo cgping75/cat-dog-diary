@@ -19,22 +19,33 @@ export type CheckinRecord = {
 
 export type CheckinItemWithStatus = CheckinItem & { done: boolean };
 
-const SYSTEM_ITEMS = ['陪伴互动', '情绪观察', '温柔抚摸'];
+const SYSTEM_ITEMS = ['陪伴互动', '情绪观察'];
 
 export const checkinRepository = {
   seedSystemItems(petId: number): void {
     const db = getDB();
-    const existing = db.getFirstSync<{ c: number }>(
-      'SELECT COUNT(*) as c FROM checkin_items WHERE pet_id = ? AND is_system = 1',
+    // Get existing system items
+    const existing = db.getAllSync<{ id: number; label: string }>(
+      'SELECT id, label FROM checkin_items WHERE pet_id = ? AND is_system = 1',
       [petId]
     );
-    if (existing && existing.c > 0) return;
-    SYSTEM_ITEMS.forEach((label, i) => {
-      db.runSync(
-        'INSERT INTO checkin_items (pet_id, label, is_system, sort_order) VALUES (?, ?, 1, ?)',
-        [petId, label, i]
-      );
-    });
+    const existingLabels = existing.map((e) => e.label);
+    // If labels don't match, delete old and re-seed
+    const needsReseed = existing.length !== SYSTEM_ITEMS.length ||
+      !SYSTEM_ITEMS.every((l) => existingLabels.includes(l));
+    if (needsReseed) {
+      // Delete old system item records first
+      existing.forEach((e) => {
+        db.runSync('DELETE FROM checkin_records WHERE item_id = ?', [e.id]);
+      });
+      db.runSync('DELETE FROM checkin_items WHERE pet_id = ? AND is_system = 1', [petId]);
+      SYSTEM_ITEMS.forEach((label, i) => {
+        db.runSync(
+          'INSERT INTO checkin_items (pet_id, label, is_system, sort_order) VALUES (?, ?, 1, ?)',
+          [petId, label, i]
+        );
+      });
+    }
   },
 
   getItems(petId: number): CheckinItem[] {
