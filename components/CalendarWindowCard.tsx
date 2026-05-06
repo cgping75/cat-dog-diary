@@ -19,6 +19,7 @@ type CalendarWindowCardProps = {
   suggestionTitle: string;
   suggestionContent: string;
   suggestionIcon: string;
+  customBgUri?: string;
   onToggleCheckin: (itemId: number) => void;
 };
 
@@ -34,6 +35,7 @@ export default function CalendarWindowCard({
   suggestionTitle,
   suggestionContent,
   suggestionIcon,
+  customBgUri,
   onToggleCheckin,
 }: CalendarWindowCardProps) {
   const now = new Date();
@@ -46,7 +48,7 @@ export default function CalendarWindowCard({
   const customItems = checkinItems.filter((i) => !i.is_system);
   const allSystemDone = systemItems.length > 0 && systemItems.every((i) => i.done);
 
-  const hasPhoto = !!pet?.photo_uri;
+  const hasBg = !!customBgUri;
 
   const content = (
     <>
@@ -57,18 +59,9 @@ export default function CalendarWindowCard({
         ))}
       </View>
 
-      {/* Pet info row */}
+      {/* Pet info row — no avatar */}
       {pet && (
         <View style={styles.petRow}>
-          <View style={styles.petAvatarWrap}>
-            {hasPhoto ? (
-              <ImageBackground source={{ uri: pet.photo_uri }} style={styles.petAvatar} imageStyle={styles.petAvatarImg} />
-            ) : (
-              <View style={[styles.petAvatar, styles.petAvatarDefault]}>
-                <MaterialCommunityIcons name={pet.pet_type === 'cat' ? 'cat' : 'dog'} size={30} color={colors.primary} />
-              </View>
-            )}
-          </View>
           <View style={styles.petInfo}>
             <Text style={styles.petName}>{pet.name}</Text>
             <Text style={styles.petMeta}>
@@ -87,7 +80,6 @@ export default function CalendarWindowCard({
 
       {/* Main body: date + checkin */}
       <View style={styles.body}>
-        {/* Left: Big date */}
         <View style={styles.dateSection}>
           <Text style={styles.monthText}>{month}月</Text>
           <Text style={styles.dayText}>{day}</Text>
@@ -95,12 +87,10 @@ export default function CalendarWindowCard({
           <Text style={styles.yearText}>{year}</Text>
         </View>
 
-        {/* Divider */}
         <View style={styles.divider} />
 
-        {/* Right: Checkin items */}
         <View style={styles.checkinSection}>
-          <Text style={styles.checkinTitle}>每日打卡</Text>
+          <Text style={styles.checkinTitle}>情绪维护打卡</Text>
           {systemItems.map((item) => (
             <TouchableOpacity
               key={item.id}
@@ -205,10 +195,10 @@ export default function CalendarWindowCard({
     </>
   );
 
-  if (hasPhoto) {
+  if (hasBg) {
     return (
       <ImageBackground
-        source={{ uri: pet!.photo_uri }}
+        source={{ uri: customBgUri }}
         style={styles.container}
         imageStyle={styles.bgImage}
       >
@@ -226,10 +216,10 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: '#FFFBF0',
-    shadowColor: '#8B7355',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#B0B0B0',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 5,
   },
@@ -238,7 +228,7 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   bgOverlay: {
-    backgroundColor: 'rgba(255, 251, 240, 0.92)',
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
   },
   tearLine: {
     flexDirection: 'row',
@@ -251,10 +241,10 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: '#E8DCC8',
+    backgroundColor: '#E0E0E0',
   },
 
-  // Pet info
+  // Pet info — no avatar
   petRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -263,24 +253,9 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     gap: 12,
   },
-  petAvatarWrap: {},
-  petAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    overflow: 'hidden',
-  },
-  petAvatarImg: {
-    borderRadius: 26,
-  },
-  petAvatarDefault: {
-    backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   petInfo: { flex: 1 },
-  petName: { fontSize: 20, fontWeight: '800', color: '#5D4037' },
-  petMeta: { fontSize: 13, color: '#A89279', marginTop: 3 },
+  petName: { fontSize: 20, fontWeight: '800', color: '#333333' },
+  petMeta: { fontSize: 13, color: '#888888', marginTop: 3 },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -310,30 +285,30 @@ const styles = StyleSheet.create({
   monthText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#B8860B',
+    color: '#999999',
     letterSpacing: 2,
   },
   dayText: {
     fontSize: 64,
     fontWeight: '900',
-    color: '#8B4513',
+    color: '#333333',
     lineHeight: 70,
     marginTop: -2,
   },
   weekdayText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#CD853F',
+    color: '#666666',
     marginTop: -2,
   },
   yearText: {
     fontSize: 13,
-    color: '#C4A882',
+    color: '#AAAAAA',
     marginTop: 4,
   },
   divider: {
     width: 1.5,
-    backgroundColor: '#E8DCC8',
+    backgroundColor: '#E8E8E8',
     alignSelf: 'stretch',
     marginHorizontal: 16,
   },
@@ -344,7 +319,7 @@ const styles = StyleSheet.create({
   checkinTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#8B7B6E',
+    color: '#666666',
     marginBottom: 4,
   },
   checkinItemRow: {
@@ -355,7 +330,7 @@ const styles = StyleSheet.create({
   checkinItemLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6B5B4E',
+    color: '#444444',
     flex: 1,
   },
   checkinItemDone: {
@@ -365,7 +340,7 @@ const styles = StyleSheet.create({
   systemTag: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#B8A892',
+    color: '#BBBBBB',
   },
 
   // Todos
@@ -373,7 +348,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: '#E8DCC8',
+    borderTopColor: '#E8E8E8',
     marginHorizontal: 16,
     gap: 8,
   },
@@ -385,7 +360,7 @@ const styles = StyleSheet.create({
   todoTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#8B7B6E',
+    color: '#666666',
   },
   todoRow: {
     flexDirection: 'row',
@@ -394,16 +369,16 @@ const styles = StyleSheet.create({
   },
   todoText: {
     fontSize: 14,
-    color: '#6B5B4E',
+    color: '#444444',
     flex: 1,
   },
   todoTextDone: {
     textDecorationLine: 'line-through',
-    color: '#C4A882',
+    color: '#BBBBBB',
   },
   todoMore: {
     fontSize: 12,
-    color: '#C4A882',
+    color: '#BBBBBB',
     marginLeft: 24,
   },
 
@@ -421,7 +396,7 @@ const styles = StyleSheet.create({
   },
   weatherText: {
     fontSize: 14,
-    color: '#8B7B6E',
+    color: '#888888',
   },
   suggestionRow: {
     flexDirection: 'row',
@@ -430,7 +405,7 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 13,
-    color: '#8B7B6E',
+    color: '#888888',
     lineHeight: 20,
     flex: 1,
   },

@@ -19,7 +19,7 @@ export type CheckinRecord = {
 
 export type CheckinItemWithStatus = CheckinItem & { done: boolean };
 
-const SYSTEM_ITEMS = ['喂食', '换水', '铲屎/清理'];
+const SYSTEM_ITEMS = ['陪伴互动', '情绪观察', '温柔抚摸'];
 
 export const checkinRepository = {
   seedSystemItems(petId: number): void {

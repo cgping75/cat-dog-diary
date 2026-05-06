@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository, PetRecord } from '@/lib/recordRepository';
 import { checkinRepository, CheckinItemWithStatus } from '@/lib/checkinRepository';
@@ -28,6 +30,7 @@ export default function TodayScreen() {
   const [nextTodo, setNextTodo] = useState<TodoItem | null>(null);
   const [showAddCheckin, setShowAddCheckin] = useState(false);
   const [newCheckinLabel, setNewCheckinLabel] = useState('');
+  const [calendarBgUri, setCalendarBgUri] = useState<string>('');
 
   const loadData = useCallback(() => {
     const allPets = petRepository.getAll();
@@ -78,6 +81,11 @@ export default function TodayScreen() {
     check('grooming', GROOMING_INTERVAL_DAYS, '该修剪毛发了', 'content-cut');
     check('nail', NAIL_INTERVAL_DAYS, '该剪指甲了', 'hand-back-right-outline');
     setReminders(rems);
+
+    // Load saved calendar bg
+    AsyncStorage.getItem('calendar_bg_uri').then((uri) => {
+      if (uri) setCalendarBgUri(uri);
+    });
   }, [currentPetId]);
 
   useFocusEffect(loadData);
@@ -110,6 +118,25 @@ export default function TodayScreen() {
     ]);
   };
 
+  const handlePickCalendarBg = () => {
+    Alert.alert('日历底图', '选择日历背景图片', [
+      { text: '从相册选择', onPress: async () => {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) return;
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+        if (!result.canceled && result.assets[0]) {
+          setCalendarBgUri(result.assets[0].uri);
+          AsyncStorage.setItem('calendar_bg_uri', result.assets[0].uri);
+        }
+      }},
+      { text: '恢复默认白底', style: 'destructive', onPress: () => {
+        setCalendarBgUri('');
+        AsyncStorage.removeItem('calendar_bg_uri');
+      }},
+      { text: '取消', style: 'cancel' },
+    ]);
+  };
+
   if (pets.length === 0) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -129,25 +156,32 @@ export default function TodayScreen() {
       <PetSwitcher pets={pets} selectedId={currentPetId} onSelect={setCurrentPetId} />
 
       {/* Calendar Window Card — tap to full calendar */}
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => router.push({ pathname: '/calendar-full', params: { petId: String(currentPetId) } })}
-      >
-        <CalendarWindowCard
-          pet={currentPet}
-          streak={streak}
-          checkinItems={checkinItems}
-          todayTodos={todayTodos}
-          nextTodo={nextTodo}
-          weatherLabel={weather.label}
-          weatherIcon={weather.icon}
-          weatherTemp={weather.temp}
-          suggestionTitle={suggestion.title}
-          suggestionContent={suggestion.content}
-          suggestionIcon={suggestion.icon}
-          onToggleCheckin={handleToggleCheckin}
-        />
-      </TouchableOpacity>
+      <View>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => router.push({ pathname: '/calendar-full', params: { petId: String(currentPetId) } })}
+        >
+          <CalendarWindowCard
+            pet={currentPet}
+            streak={streak}
+            checkinItems={checkinItems}
+            todayTodos={todayTodos}
+            nextTodo={nextTodo}
+            weatherLabel={weather.label}
+            weatherIcon={weather.icon}
+            weatherTemp={weather.temp}
+            suggestionTitle={suggestion.title}
+            suggestionContent={suggestion.content}
+            suggestionIcon={suggestion.icon}
+            customBgUri={calendarBgUri}
+            onToggleCheckin={handleToggleCheckin}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.bgSettingBtn} onPress={handlePickCalendarBg} activeOpacity={0.6}>
+          <MaterialCommunityIcons name="image-outline" size={16} color={colors.textSecondary} />
+          <Text style={styles.bgSettingText}>更换底图</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Manage custom checkin items */}
       <Card style={styles.manageCard}>
@@ -271,6 +305,12 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  bgSettingBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: 8,
+    marginTop: 4,
+  },
+  bgSettingText: { fontSize: 12, color: colors.textSecondary },
   content: { padding: spacing.lg, paddingBottom: spacing.xl },
   manageCard: { marginTop: spacing.sm, paddingVertical: 0, paddingHorizontal: 0 },
   manageHeader: {
