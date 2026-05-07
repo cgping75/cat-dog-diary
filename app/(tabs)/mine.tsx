@@ -53,7 +53,7 @@ export default function MineScreen() {
     }
 
     const mailOptions: MailComposer.MailComposerOptions = {
-      recipients: ['cgping75@gmail.com'],
+      recipients: ['3892767120@qq.com'],
       subject,
       body,
     };
