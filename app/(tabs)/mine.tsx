@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, Image, TextInput, Platform, Linking } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as MailComposer from 'expo-mail-composer';
+import * as ImagePicker from 'expo-image-picker';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository } from '@/lib/recordRepository';
 import { quizRepository } from '@/lib/quizRepository';
@@ -18,6 +19,7 @@ export default function MineScreen() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackType, setFeedbackType] = useState('bug');
   const [feedbackText, setFeedbackText] = useState('');
+  const [screenshotUri, setScreenshotUri] = useState('');
 
   const feedbackTypes = [
     { key: 'bug', label: '闪退/BUG', icon: 'bug-outline' as const },
@@ -26,29 +28,43 @@ export default function MineScreen() {
     { key: 'other', label: '其他', icon: 'chat-outline' as const },
   ];
 
+  const handlePickScreenshot = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+    if (!result.canceled && result.assets[0]) {
+      setScreenshotUri(result.assets[0].uri);
+    }
+  };
+
   const handleSubmitFeedback = async () => {
     if (!feedbackText.trim()) {
       Alert.alert('提示', '请填写反馈内容');
       return;
     }
-    const entry = {
-      id: Date.now(),
-      type: feedbackType,
-      text: feedbackText.trim(),
-      date: new Date().toISOString(),
-      device: `${Platform.OS} ${Platform.Version}`,
-    };
-    try {
-      const existing = await AsyncStorage.getItem('feedback_list');
-      const list = existing ? JSON.parse(existing) : [];
-      list.unshift(entry);
-      await AsyncStorage.setItem('feedback_list', JSON.stringify(list));
-      setFeedbackText('');
-      setShowFeedback(false);
-      Alert.alert('感谢反馈', '你的反馈已记录，开发者会尽快处理！');
-    } catch {
-      Alert.alert('错误', '保存失败，请重试');
+    const typeLabel = feedbackTypes.find((t) => t.key === feedbackType)?.label || feedbackType;
+    const subject = `[猫狗日记反馈] ${typeLabel}`;
+    const body = `问题类型：${typeLabel}\n\n问题描述：\n${feedbackText.trim()}\n\n---\n设备：${Platform.OS} ${Platform.Version}\n时间：${new Date().toLocaleString()}`;
+
+    const available = await MailComposer.isAvailableAsync();
+    if (!available) {
+      Alert.alert('提示', '设备未配置邮件客户端，建议使用「问题跟踪」在GitHub上反馈');
+      return;
     }
+
+    const mailOptions: MailComposer.MailComposerOptions = {
+      recipients: ['cgping75@gmail.com'],
+      subject,
+      body,
+    };
+    if (screenshotUri) {
+      mailOptions.attachments = [screenshotUri];
+    }
+
+    await MailComposer.composeAsync(mailOptions);
+    setFeedbackText('');
+    setScreenshotUri('');
+    setShowFeedback(false);
   };
 
   const handleOpenGitHub = () => {
@@ -173,7 +189,7 @@ export default function MineScreen() {
               <MaterialCommunityIcons name="message-alert-outline" size={20} color="#4CAF50" />
             </View>
             <Text style={styles.settingsText}>意见反馈</Text>
-            <Text style={styles.settingsHint}>APP内反馈 · 无需联网</Text>
+            <Text style={styles.settingsHint}>邮件反馈 · 可截图</Text>
             <MaterialCommunityIcons name={showFeedback ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
@@ -204,8 +220,23 @@ export default function MineScreen() {
                 maxLength={500}
                 textAlignVertical="top"
               />
+              {/* Screenshot attachment */}
+              <TouchableOpacity style={styles.screenshotBtn} onPress={handlePickScreenshot} activeOpacity={0.7}>
+                <MaterialCommunityIcons name="image-plus" size={20} color={colors.primary} />
+                <Text style={styles.screenshotBtnText}>
+                  {screenshotUri ? '已添加截图（点击更换）' : '添加截图（可选）'}
+                </Text>
+                {screenshotUri !== '' && (
+                  <TouchableOpacity onPress={() => setScreenshotUri('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <MaterialCommunityIcons name="close-circle" size={18} color={colors.error} />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+              {screenshotUri !== '' && (
+                <Image source={{ uri: screenshotUri }} style={styles.screenshotPreview} resizeMode="cover" />
+              )}
               <TouchableOpacity style={styles.feedbackSubmit} onPress={handleSubmitFeedback} activeOpacity={0.8}>
-                <Text style={styles.feedbackSubmitText}>提交反馈</Text>
+                <Text style={styles.feedbackSubmitText}>发送反馈邮件</Text>
               </TouchableOpacity>
             </Card>
           )}
@@ -311,4 +342,12 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full, alignItems: 'center',
   },
   feedbackSubmitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  screenshotBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingVertical: spacing.sm, marginBottom: spacing.sm,
+  },
+  screenshotBtnText: { fontSize: 13, fontWeight: '600', color: colors.primary, flex: 1 },
+  screenshotPreview: {
+    width: '100%', height: 160, borderRadius: 12, marginBottom: spacing.md,
+  },
 });
