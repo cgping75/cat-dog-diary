@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, Image, TextInput, Platform, Linking } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository } from '@/lib/recordRepository';
 import { quizRepository } from '@/lib/quizRepository';
@@ -13,6 +14,46 @@ export default function MineScreen() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [hasPassed, setHasPassed] = useState(false);
+
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackType, setFeedbackType] = useState('bug');
+  const [feedbackText, setFeedbackText] = useState('');
+
+  const feedbackTypes = [
+    { key: 'bug', label: '闪退/BUG', icon: 'bug-outline' as const },
+    { key: 'feature', label: '功能异常', icon: 'alert-circle-outline' as const },
+    { key: 'suggest', label: '建议', icon: 'lightbulb-outline' as const },
+    { key: 'other', label: '其他', icon: 'chat-outline' as const },
+  ];
+
+  const handleSubmitFeedback = async () => {
+    if (!feedbackText.trim()) {
+      Alert.alert('提示', '请填写反馈内容');
+      return;
+    }
+    const entry = {
+      id: Date.now(),
+      type: feedbackType,
+      text: feedbackText.trim(),
+      date: new Date().toISOString(),
+      device: `${Platform.OS} ${Platform.Version}`,
+    };
+    try {
+      const existing = await AsyncStorage.getItem('feedback_list');
+      const list = existing ? JSON.parse(existing) : [];
+      list.unshift(entry);
+      await AsyncStorage.setItem('feedback_list', JSON.stringify(list));
+      setFeedbackText('');
+      setShowFeedback(false);
+      Alert.alert('感谢反馈', '你的反馈已记录，开发者会尽快处理！');
+    } catch {
+      Alert.alert('错误', '保存失败，请重试');
+    }
+  };
+
+  const handleOpenGitHub = () => {
+    Linking.openURL('https://github.com/cgping75/cat-dog-diary/issues');
+  };
 
   const loadData = useCallback(() => {
     const allPets = petRepository.getAll();
@@ -122,6 +163,67 @@ export default function MineScreen() {
             <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
+          {/* Feedback entry - in-app */}
+          <TouchableOpacity
+            style={styles.settingsRow}
+            onPress={() => setShowFeedback(!showFeedback)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.settingsIcon, { backgroundColor: '#E8F5E9' }]}>
+              <MaterialCommunityIcons name="message-alert-outline" size={20} color="#4CAF50" />
+            </View>
+            <Text style={styles.settingsText}>意见反馈</Text>
+            <Text style={styles.settingsHint}>APP内反馈 · 无需联网</Text>
+            <MaterialCommunityIcons name={showFeedback ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          {showFeedback && (
+            <Card style={{ marginBottom: spacing.md }}>
+              <Text style={styles.feedbackLabel}>问题类型</Text>
+              <View style={styles.feedbackTypeRow}>
+                {feedbackTypes.map((t) => (
+                  <TouchableOpacity
+                    key={t.key}
+                    style={[styles.feedbackTypeBtn, feedbackType === t.key && styles.feedbackTypeActive]}
+                    onPress={() => setFeedbackType(t.key)}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialCommunityIcons name={t.icon} size={16} color={feedbackType === t.key ? colors.primary : colors.textSecondary} />
+                    <Text style={[styles.feedbackTypeText, feedbackType === t.key && { color: colors.primary }]}>{t.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TextInput
+                style={styles.feedbackInput}
+                value={feedbackText}
+                onChangeText={setFeedbackText}
+                placeholder="请描述你遇到的问题或建议..."
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                numberOfLines={4}
+                maxLength={500}
+                textAlignVertical="top"
+              />
+              <TouchableOpacity style={styles.feedbackSubmit} onPress={handleSubmitFeedback} activeOpacity={0.8}>
+                <Text style={styles.feedbackSubmitText}>提交反馈</Text>
+              </TouchableOpacity>
+            </Card>
+          )}
+
+          {/* GitHub Issues entry - view only, no login needed */}
+          <TouchableOpacity
+            style={styles.settingsRow}
+            onPress={handleOpenGitHub}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.settingsIcon, { backgroundColor: '#F3E5F5' }]}>
+              <MaterialCommunityIcons name="github" size={20} color="#333" />
+            </View>
+            <Text style={styles.settingsText}>问题跟踪</Text>
+            <Text style={styles.settingsHint}>查看已知问题和修复进度</Text>
+            <MaterialCommunityIcons name="open-in-new" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+
           {pets.length === 0 && (
             <EmptyState icon="paw-outline" title="还没有添加宠物" subtitle="点击上方按钮添加第一只宠物吧" />
           )}
@@ -189,4 +291,24 @@ const styles = StyleSheet.create({
   },
   settingsText: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.text },
   settingsHint: { fontSize: 12, color: colors.textSecondary },
+  feedbackLabel: { fontSize: 13, fontWeight: '700', color: colors.textSecondary, marginBottom: spacing.sm },
+  feedbackTypeRow: { flexDirection: 'row', gap: 8, marginBottom: spacing.md },
+  feedbackTypeBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: borderRadius.full, backgroundColor: colors.background,
+    borderWidth: 1.5, borderColor: colors.border,
+  },
+  feedbackTypeActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+  feedbackTypeText: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
+  feedbackInput: {
+    borderWidth: 1.5, borderColor: colors.border, borderRadius: 12,
+    padding: spacing.md, fontSize: 14, color: colors.text,
+    backgroundColor: colors.background, minHeight: 100, marginBottom: spacing.md,
+  },
+  feedbackSubmit: {
+    backgroundColor: colors.primary, paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full, alignItems: 'center',
+  },
+  feedbackSubmitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });
