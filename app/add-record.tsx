@@ -142,12 +142,13 @@ export default function AddRecordScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: spacing.xl },
-  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   typeBtn: {
-    width: '22%',
+    width: '23%',
     alignItems: 'center',
     gap: 4,
     paddingVertical: spacing.md,
+    marginBottom: spacing.sm,
     borderRadius: borderRadius.md,
     borderWidth: 1.5,
     borderColor: colors.border,

@@ -123,8 +123,8 @@ export default function RecordsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   list: { padding: spacing.lg, paddingBottom: 100 },
-  filterRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg, flexWrap: 'wrap' },
-  filterBtn: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: borderRadius.full, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card },
+  filterRow: { flexDirection: 'row', marginBottom: spacing.lg, flexWrap: 'wrap', justifyContent: 'flex-start' },
+  filterBtn: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: borderRadius.full, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, marginRight: spacing.sm, marginBottom: spacing.sm },
   filterBtnActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
   filterText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
   filterTextActive: { color: colors.primary },
