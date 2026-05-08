@@ -151,5 +151,22 @@
 - [x] 提交：652ff78（TypeScript 0 错误，ESLint 0 警告 0 错误）
 - [x] 登录/注册功能代码审查 — 整体质量不错，发现 Supabase key 硬编码问题（建议迁移到 .env）
 
+## 已完成（2026-05-08）— 日记功能 + 云同步 + 社交
+
+- [x] 日记Tab替换记录Tab（瀑布流卡片布局）
+- [x] 日记数据同步到Supabase云数据库（diaries表）
+- [x] 图片上传Supabase Storage（diary-images bucket）
+- [x] 点赞功能（diary_likes表 + toggle逻辑）
+- [x] 评论功能（diary_comments表 + 评论列表 + 输入框）
+- [x] 账号设置页面（修改密码 + 退出登录）
+- [x] 记录列表入口移至「我的」页面
+- [x] 四个Tab页面统一自定义header样式（paddingTop: 48, paddingHorizontal: spacing.lg）
+- [x] supabase-schema.sql 建表脚本（需手动在Dashboard执行）
+- [x] 日记页面简化：去掉宠物分类，统一记录统一显示
+- [x] 写日记页面简化：去掉宠物选择器，默认全局
+- [x] 修复图片上传网络错误（改用expo-file-system File.bytes()读取文件）
+- [x] 修复评论输入框与安卓导航键重叠（safe area间距）
+- [x] 修复日记列表无限循环（loadData依赖pets导致setState循环）
+
 ## 最后更新
 2026-05-08
