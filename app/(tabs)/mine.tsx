@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as MailComposer from 'expo-mail-composer';
 import * as ImagePicker from 'expo-image-picker';
+import { useAuth } from '@/components/AuthProvider';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository } from '@/lib/recordRepository';
 import { quizRepository } from '@/lib/quizRepository';
@@ -12,6 +13,7 @@ import Card from '@/components/Card';
 import EmptyState from '@/components/EmptyState';
 
 export default function MineScreen() {
+  const { user, signOut } = useAuth();
   const [pets, setPets] = useState<Pet[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [hasPassed, setHasPassed] = useState(false);
@@ -81,6 +83,13 @@ export default function MineScreen() {
   }, []);
 
   useFocusEffect(loadData);
+
+  const handleSignOut = () => {
+    Alert.alert('退出登录', '确定要退出登录吗？', [
+      { text: '取消', style: 'cancel' },
+      { text: '退出', style: 'destructive', onPress: async () => { await signOut(); router.replace('/login'); } },
+    ]);
+  };
 
   const handleDelete = (pet: Pet) => {
     Alert.alert('删除宠物', `确定要删除「${pet.name}」吗？\n该宠物的所有记录也会被删除。`, [
@@ -164,6 +173,20 @@ export default function MineScreen() {
               <Text style={styles.statLabel}>考核</Text>
             </Card>
           </View>
+
+          {/* Account info */}
+          {user && (
+            <TouchableOpacity style={styles.settingsRow} onPress={handleSignOut} activeOpacity={0.7}>
+              <View style={[styles.settingsIcon, { backgroundColor: '#E3F2FD' }]}>
+                <MaterialCommunityIcons name="account-circle-outline" size={20} color="#1976D2" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingsText}>已登录</Text>
+                <Text style={styles.settingsHint}>{user.email}</Text>
+              </View>
+              <MaterialCommunityIcons name="logout" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
 
           {/* Calendar settings entry */}
           <TouchableOpacity

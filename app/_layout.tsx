@@ -1,8 +1,11 @@
+import 'react-native-url-polyfill/auto';
 import { Stack } from 'expo-router';
+import AuthProvider from '@/components/AuthProvider';
 import { colors } from '@/lib/theme';
 
 export default function RootLayout() {
   return (
+    <AuthProvider>
     <Stack
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
@@ -11,6 +14,8 @@ export default function RootLayout() {
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="login" options={{ headerShown: false }} />
+      <Stack.Screen name="register" options={{ headerShown: false }} />
       <Stack.Screen name="add-pet" options={{ title: '添加宠物' }} />
       <Stack.Screen name="add-record" options={{ title: '添加记录' }} />
       <Stack.Screen name="quiz" options={{ title: '养宠知识考核' }} />
@@ -20,5 +25,6 @@ export default function RootLayout() {
       <Stack.Screen name="calendar-settings" options={{ headerShown: false }} />
       <Stack.Screen name="diet-guide" options={{ title: '饮食指南' }} />
     </Stack>
+    </AuthProvider>
   );
 }
