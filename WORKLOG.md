@@ -110,5 +110,46 @@
   - mine.tsx 新增「日历设置」入口卡片
   - 宠物切换从今日页面移至顶部header栏
 
+## 进行中（2026-05-07）— 登录/注册功能
+
+### 已完成
+- [x] Supabase 客户端配置（lib/supabase.ts）
+- [x] AuthProvider 组件（components/AuthProvider.tsx）— session 管理 + signIn/signUp/signOut
+- [x] 登录页面（app/login.tsx）— 邮箱/密码输入 + 登录按钮 + 跳转注册
+- [x] 注册页面（app/register.tsx）— 邮箱/密码/确认密码 + 表单验证 + 跳转登录
+- [x] app/_layout.tsx 集成 AuthProvider 包裹整个应用
+- [x] app/index.tsx 增加 session 判断，未登录自动跳转 /login
+- [x] package.json 新增 @supabase/supabase-js + @react-native-async-storage/async-storage
+
+### 测试结果（2026-05-07）
+- [x] TypeScript 编译通过（tsc --noEmit，exit 0）
+- [x] 登录页面 UI 渲染正常（Android 模拟器截屏验证）
+- [x] 注册页面 UI 渲染正常（Android 模拟器截屏验证）
+- [x] Supabase 后端验证通过：
+  - URL 可达、Auth 服务运行中（GoTrue v2.189.0）
+  - 注册接口正常（创建用户成功，返回 confirmation_sent_at）
+  - 登录接口正常（无效凭证返回 proper error）
+
+### 待解决环境问题
+- [ ] Android API 36 模拟器网络不通（WHPX + eth0/wlan0 DOWN）— 影响真机模拟测试
+- [ ] Web 端无法启动（expo-sqlite WASM 模块解析失败）— 已有问题，非登录相关
+
+### 下一步
+- [ ] 在有网络的真机或修复后的模拟器上端到端测试登录/注册流程
+- [ ] Supabase 邮箱验证模板自定义（如需要）
+- [ ] 未提交代码需要 git commit（6个修改文件 + 4个新增文件）
+
+## 已完成（2026-05-08）— ESLint 警告清理
+
+- [x] 修复 4 个 Hook 依赖缺失（真实 bug 风险）
+  - `add-pet.tsx` — useEffect 补全 `[isEdit, editId]`
+  - `add-record.tsx` — useEffect 补全 `[isEdit, editId]`
+  - `quiz-result.tsx` — useEffect 补全 `[score, total, passed]`
+  - `calendar-full.tsx` — buildReminders 改为 useCallback + loadAll 补全 4 个函数依赖，调整声明顺序消除前向引用
+- [x] 删除 6 个未使用 import（diet-guide/mood-tracker/quiz/Calendar/Card/QuickEntry）
+- [x] 修正 records.tsx import 顺序
+- [x] 提交：652ff78（TypeScript 0 错误，ESLint 0 警告 0 错误）
+- [x] 登录/注册功能代码审查 — 整体质量不错，发现 Supabase key 硬编码问题（建议迁移到 .env）
+
 ## 最后更新
-2026-05-06
+2026-05-08
