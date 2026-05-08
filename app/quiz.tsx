@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { getQuizSet, QuizQuestion } from '@/lib/quizData';
+import { getQuizSet } from '@/lib/quizData';
 import { colors, borderRadius, spacing } from '@/lib/theme';
 
 export default function QuizScreen() {

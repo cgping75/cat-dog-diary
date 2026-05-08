@@ -2,7 +2,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getDietGuides } from '@/lib/dietData';
-import { colors, borderRadius, spacing } from '@/lib/theme';
+import { colors, spacing } from '@/lib/theme';
 import { sharedStyles } from '@/lib/sharedStyles';
 import Card from '@/components/Card';
 

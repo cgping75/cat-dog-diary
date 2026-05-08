@@ -46,7 +46,7 @@ export default function AddPetScreen() {
         setPhotoUri(pet.photo_uri || '');
       }
     }
-  }, []);
+  }, [isEdit, editId]);
 
   const takePhoto = async (source: 'camera' | 'library') => {
     if (source === 'camera') {

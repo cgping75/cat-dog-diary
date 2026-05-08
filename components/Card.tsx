@@ -1,5 +1,5 @@
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { colors, borderRadius, spacing } from '@/lib/theme';
+import { colors, spacing } from '@/lib/theme';
 
 type CardProps = {
   children: React.ReactNode;

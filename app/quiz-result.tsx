@@ -14,7 +14,7 @@ export default function QuizResultScreen() {
 
   useEffect(() => {
     quizRepository.saveResult(score, total, passed);
-  }, []);
+  }, [score, total, passed]);
 
   return (
     <View style={styles.container}>

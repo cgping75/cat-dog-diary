@@ -4,12 +4,12 @@ import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository, PetRecord, RecordType } from '@/lib/recordRepository';
-
-type FilterKey = RecordType | 'all';
 import { colors, borderRadius, spacing } from '@/lib/theme';
 import PetSwitcher from '@/components/PetSwitcher';
 import RecordCard from '@/components/RecordCard';
 import EmptyState from '@/components/EmptyState';
+
+type FilterKey = RecordType | 'all';
 
 const filters: { key: string; label: string }[] = [
   { key: 'all' as const, label: '全部' },

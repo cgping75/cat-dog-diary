@@ -31,18 +31,7 @@ export default function CalendarFullScreen() {
   const [todoTitle, setTodoTitle] = useState('');
   const [reminders, setReminders] = useState<{ text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[]>([]);
 
-  const loadAll = useCallback(() => {
-    if (!petId) return;
-    const p = petRepository.getById(petId);
-    setPet(p);
-    setStreak(checkinRepository.getStreak(petId));
-    loadCalendarData(calYear, calMonth);
-    loadDayData(selectedDate);
-    loadTodos();
-    buildReminders();
-  }, [petId, calYear, calMonth, selectedDate]);
-
-  const buildReminders = () => {
+  const buildReminders = useCallback(() => {
     const rems: { text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [];
     const now = new Date();
     const check = (type: string, interval: number, msg: string, icon: keyof typeof MaterialCommunityIcons.glyphMap) => {
@@ -60,7 +49,7 @@ export default function CalendarFullScreen() {
     check('grooming', GROOMING_INTERVAL_DAYS, '该修剪毛发了', 'content-cut');
     check('nail', NAIL_INTERVAL_DAYS, '该剪指甲了', 'hand-back-right-outline');
     setReminders(rems);
-  };
+  }, [petId]);
 
   const loadCalendarData = useCallback((year: number, month: number) => {
     const recordDates = recordRepository.getRecordDatesInMonth(petId, year, month);
@@ -83,6 +72,17 @@ export default function CalendarFullScreen() {
     setUpcomingTodos(todoRepository.getUpcoming(petId, 5));
     setOverdueTodos(todoRepository.getOverdue(petId));
   }, [petId]);
+
+  const loadAll = useCallback(() => {
+    if (!petId) return;
+    const p = petRepository.getById(petId);
+    setPet(p);
+    setStreak(checkinRepository.getStreak(petId));
+    loadCalendarData(calYear, calMonth);
+    loadDayData(selectedDate);
+    loadTodos();
+    buildReminders();
+  }, [petId, calYear, calMonth, selectedDate, loadCalendarData, loadDayData, loadTodos, buildReminders]);
 
   useFocusEffect(loadAll);
 

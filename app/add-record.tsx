@@ -132,7 +132,7 @@ export default function AddRecordScreen() {
         setNote(record.note || '');
       }
     }
-  }, []);
+  }, [isEdit, editId]);
 
   const handleSave = () => {
     if (!petId && !isEdit) {

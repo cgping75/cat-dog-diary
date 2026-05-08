@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, Keyboard, TouchableWithoutFeedback } from 'react-native';
-import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { moodRepository, Mood, MoodRecord, MoodDraft, Level } from '@/lib/moodRepository';
 import { moodInfoMap } from '@/lib/moodCareData';

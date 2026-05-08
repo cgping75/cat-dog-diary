@@ -1,6 +1,6 @@
 import { TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { colors, borderRadius, spacing } from '@/lib/theme';
+import { colors, spacing } from '@/lib/theme';
 
 type QuickEntryProps = {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { getMonthDays, getMonthLabel, getWeekDays, formatDateStr, CalendarDay } from '@/lib/calendarUtils';
+import { getMonthDays, getMonthLabel, getWeekDays } from '@/lib/calendarUtils';
 import { colors, borderRadius, spacing } from '@/lib/theme';
 
 type MarkedDates = {
