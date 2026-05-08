@@ -13,7 +13,7 @@ import Card from '@/components/Card';
 import EmptyState from '@/components/EmptyState';
 
 export default function MineScreen() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [pets, setPets] = useState<Pet[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [hasPassed, setHasPassed] = useState(false);
@@ -84,13 +84,6 @@ export default function MineScreen() {
 
   useFocusEffect(loadData);
 
-  const handleSignOut = () => {
-    Alert.alert('退出登录', '确定要退出登录吗？', [
-      { text: '取消', style: 'cancel' },
-      { text: '退出', style: 'destructive', onPress: async () => { await signOut(); router.replace('/login'); } },
-    ]);
-  };
-
   const handleDelete = (pet: Pet) => {
     Alert.alert('删除宠物', `确定要删除「${pet.name}」吗？\n该宠物的所有记录也会被删除。`, [
       { text: '取消', style: 'cancel' },
@@ -141,21 +134,24 @@ export default function MineScreen() {
   );
 
   return (
-    <FlatList
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      data={pets}
-      keyExtractor={(item) => String(item.id)}
-      renderItem={renderPet}
-      ListHeaderComponent={
+    <View style={styles.container}>
+      {/* Fixed header */}
+      <View style={styles.headerArea}>
+        <Text style={styles.title}>我的</Text>
+        <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/add-pet')} activeOpacity={0.7}>
+          <MaterialCommunityIcons name="plus" size={20} color={colors.card} />
+          <Text style={styles.addBtnText}>添加宠物</Text>
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.content}
+        data={pets}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={renderPet}
+        ListHeaderComponent={
         <>
-          <View style={styles.headerArea}>
-            <Text style={styles.title}>我的宠物</Text>
-            <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/add-pet')} activeOpacity={0.7}>
-              <MaterialCommunityIcons name="plus" size={20} color={colors.card} />
-              <Text style={styles.addBtnText}>添加宠物</Text>
-            </TouchableOpacity>
-          </View>
 
           <View style={styles.statsRow}>
             <Card style={styles.statCard}>
@@ -174,19 +170,35 @@ export default function MineScreen() {
             </Card>
           </View>
 
-          {/* Account info */}
+          {/* Account settings */}
           {user && (
-            <TouchableOpacity style={styles.settingsRow} onPress={handleSignOut} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.settingsRow} onPress={() => router.push('/account-settings')} activeOpacity={0.7}>
               <View style={[styles.settingsIcon, { backgroundColor: '#E3F2FD' }]}>
                 <MaterialCommunityIcons name="account-circle-outline" size={20} color="#1976D2" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.settingsText}>已登录</Text>
+                <Text style={styles.settingsText}>账号设置</Text>
                 <Text style={styles.settingsHint}>{user.email}</Text>
               </View>
-              <MaterialCommunityIcons name="logout" size={20} color={colors.textSecondary} />
+              <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
+
+          {/* Record list entry */}
+          <TouchableOpacity
+            style={styles.settingsRow}
+            onPress={() => router.push('/record-list')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.settingsIcon, { backgroundColor: '#FCE4EC' }]}>
+              <MaterialCommunityIcons name="notebook-heart" size={20} color="#E91E63" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingsText}>查看记录</Text>
+              <Text style={styles.settingsHint}>健康记录、疫苗、驱虫等</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
 
           {/* Calendar settings entry */}
           <TouchableOpacity
@@ -284,14 +296,23 @@ export default function MineScreen() {
         </>
       }
     />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: spacing.xl },
-  headerArea: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg },
-  title: { fontSize: 24, fontWeight: '800', color: colors.text },
+  headerArea: {
+    backgroundColor: colors.background,
+    paddingTop: 48,
+    paddingBottom: 8,
+    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  title: { fontSize: 22, fontWeight: '800', color: colors.text },
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.full },
   addBtnText: { color: colors.card, fontSize: 14, fontWeight: '600' },
   statsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },

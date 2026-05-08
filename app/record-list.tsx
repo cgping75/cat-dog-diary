@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository, PetRecord, RecordType } from '@/lib/recordRepository';
@@ -35,9 +35,10 @@ function fetchRecords(petId: number, filter: FilterKey): PetRecord[] {
     : recordRepository.getByPetIdAndType(petId, filter as RecordType);
 }
 
-export default function RecordsScreen() {
+export default function RecordListScreen() {
+  const params = useLocalSearchParams<{ petId?: string }>();
   const [pets, setPets] = useState<Pet[]>([]);
-  const [currentPetId, setCurrentPetId] = useState<number>(0);
+  const [currentPetId, setCurrentPetId] = useState<number>(params.petId ? Number(params.petId) : 0);
   const [records, setRecords] = useState<PetRecord[]>([]);
   const [filter, setFilter] = useState<FilterKey>('all');
 
@@ -74,6 +75,14 @@ export default function RecordsScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>记录列表</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <FlatList
         data={records}
         keyExtractor={(item) => String(item.id)}
@@ -122,6 +131,17 @@ export default function RecordsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xl + 20,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.background,
+  },
+  backBtn: { width: 40, height: 40, justifyContent: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
   list: { padding: spacing.lg, paddingBottom: 100 },
   filterRow: { flexDirection: 'row', marginBottom: spacing.lg, flexWrap: 'wrap', justifyContent: 'flex-start' },
   filterBtn: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: borderRadius.full, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, marginRight: spacing.sm, marginBottom: spacing.sm },

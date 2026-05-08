@@ -110,6 +110,19 @@ const initDB = () => {
     );
   `);
 
+  // Diary table
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS diary (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content TEXT NOT NULL,
+      images TEXT,
+      pet_id INTEGER,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (pet_id) REFERENCES pets(id)
+    );
+  `);
+
   // Migration: drop old checkins table if exists
   try {
     db.execSync('DROP TABLE IF EXISTS checkins');

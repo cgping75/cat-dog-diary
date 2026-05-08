@@ -46,11 +46,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="records"
+        name="diary"
         options={{
-          title: '记录',
+          title: '日记',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="notebook-heart" size={size} color={color} />
+            <MaterialCommunityIcons name="book-heart" size={size} color={color} />
           ),
         }}
       />
@@ -58,6 +59,7 @@ export default function TabLayout() {
         name="plan"
         options={{
           title: '计划',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="school" size={size} color={color} />
           ),
@@ -67,6 +69,7 @@ export default function TabLayout() {
         name="mine"
         options={{
           title: '我的',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="account-heart" size={size} color={color} />
           ),

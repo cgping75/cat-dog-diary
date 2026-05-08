@@ -24,6 +24,10 @@ export default function RootLayout() {
       <Stack.Screen name="calendar-full" options={{ headerShown: false }} />
       <Stack.Screen name="calendar-settings" options={{ headerShown: false }} />
       <Stack.Screen name="diet-guide" options={{ title: '饮食指南' }} />
+      <Stack.Screen name="add-diary" options={{ headerShown: false }} />
+      <Stack.Screen name="diary-detail" options={{ headerShown: false }} />
+      <Stack.Screen name="record-list" options={{ headerShown: false }} />
+      <Stack.Screen name="account-settings" options={{ headerShown: false }} />
     </Stack>
     </AuthProvider>
   );

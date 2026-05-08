@@ -8,7 +8,6 @@ import { quizRepository } from '@/lib/quizRepository';
 import { colors, borderRadius, spacing } from '@/lib/theme';
 import { daysBetween, formatDate, VACCINE_INTERVAL_DAYS, DEWORM_INTERVAL_DAYS, CHECKUP_INTERVAL_DAYS, DENTAL_INTERVAL_DAYS, BATH_INTERVAL_DAYS, GROOMING_INTERVAL_DAYS, NAIL_INTERVAL_DAYS } from '@/lib/dateUtils';
 import Card from '@/components/Card';
-import PetSwitcher from '@/components/PetSwitcher';
 import EmptyState from '@/components/EmptyState';
 
 export default function PlanScreen() {
@@ -77,9 +76,29 @@ export default function PlanScreen() {
   const nailDays = latestNail ? daysBetween(new Date(latestNail.recorded_at), now) : null;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <PetSwitcher pets={pets} selectedId={currentPetId} onSelect={setCurrentPetId} />
+    <View style={styles.container}>
+      {/* Custom header with pet switcher */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>计划</Text>
+        {pets.length > 1 && (
+          <View style={styles.petTabs}>
+            {pets.map((pet) => (
+              <TouchableOpacity
+                key={pet.id}
+                style={[styles.petTab, pet.id === currentPetId && styles.petTabActive]}
+                onPress={() => setCurrentPetId(pet.id)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.petTabText, pet.id === currentPetId && styles.petTabTextActive]} numberOfLines={1}>
+                  {pet.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
 
+      <ScrollView contentContainerStyle={styles.content}>
       <Card style={styles.quizCard}>
         <View style={styles.quizHeader}>
           <View style={styles.quizIconWrap}>
@@ -270,11 +289,32 @@ export default function PlanScreen() {
         <EmptyState icon="calendar-blank" title="暂无计划" subtitle="添加宠物后可查看健康计划提醒" />
       )}
     </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  header: {
+    backgroundColor: colors.background,
+    paddingTop: 48,
+    paddingBottom: 8,
+    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: colors.text },
+  petTabs: { flexDirection: 'row', gap: spacing.sm, flex: 1 },
+  petTab: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.card,
+  },
+  petTabActive: { backgroundColor: colors.primary },
+  petTabText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  petTabTextActive: { color: '#fff' },
   content: { padding: spacing.lg, paddingBottom: spacing.xl },
   quizCard: { marginTop: spacing.sm, backgroundColor: colors.card },
   quizHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md },
