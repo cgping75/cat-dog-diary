@@ -138,13 +138,17 @@ export default function MoodTrackerScreen() {
           </View>
 
           <Text style={sharedStyles.label}>行为表现</Text>
-          <TextInput
-            style={sharedStyles.input}
-            value={behavior}
-            onChangeText={setBehavior}
-            placeholder="如：频繁舔毛、躲角落、追尾巴"
-            placeholderTextColor={colors.textSecondary}
-          />
+          <View style={styles.optionRow}>
+            {['正常', '频繁舔毛', '躲角落', '追尾巴', '异常叫唤', '攻击性', '无精打采', '过度兴奋'].map((b) => (
+              <TouchableOpacity
+                key={b}
+                style={[styles.optionBtn, behavior === b && styles.optionBtnActive]}
+                onPress={() => setBehavior(behavior === b ? '' : b)}
+              >
+                <Text style={[styles.optionBtnText, behavior === b && styles.optionBtnTextActive]}>{b}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
           <Text style={sharedStyles.label}>备注</Text>
           <TextInput
@@ -279,7 +283,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   moodBtnText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
-  optionRow: { flexDirection: 'row', gap: spacing.sm },
+  optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   optionBtn: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,

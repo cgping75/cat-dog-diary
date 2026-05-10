@@ -244,13 +244,17 @@ export default function AddPetScreen() {
         </View>
 
         <Text style={sharedStyles.label}>年龄</Text>
-        <TextInput
-          style={sharedStyles.input}
-          value={ageText}
-          onChangeText={setAgeText}
-          placeholder="如：3岁、6个月"
-          placeholderTextColor={colors.textSecondary}
-        />
+        <View style={styles.personalityGrid}>
+          {['1月', '2月', '3月', '6月', '1岁', '2岁', '3岁', '5岁', '7岁', '10岁', '12岁', '15岁'].map((age) => (
+            <TouchableOpacity
+              key={age}
+              style={[styles.personalityChip, ageText === age && styles.personalityChipActive]}
+              onPress={() => setAgeText(ageText === age ? '' : age)}
+            >
+              <Text style={[styles.personalityChipText, ageText === age && styles.personalityChipTextActive]}>{age}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <Text style={sharedStyles.label}>体重 (kg)</Text>
         <TextInput
@@ -306,13 +310,17 @@ export default function AddPetScreen() {
         />
 
         <Text style={sharedStyles.label}>过敏信息</Text>
-        <TextInput
-          style={sharedStyles.input}
-          value={allergies}
-          onChangeText={setAllergies}
-          placeholder="如：鸡肉过敏、花粉过敏"
-          placeholderTextColor={colors.textSecondary}
-        />
+        <View style={styles.personalityGrid}>
+          {['无过敏', '花粉', '谷物', '鸡肉', '鱼', '乳制品', '牛肉', '环境灰尘', '其他'].map((a) => (
+            <TouchableOpacity
+              key={a}
+              style={[styles.personalityChip, allergies === a && styles.personalityChipActive]}
+              onPress={() => setAllergies(allergies === a ? '' : a)}
+            >
+              <Text style={[styles.personalityChipText, allergies === a && styles.personalityChipTextActive]}>{a}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <Text style={sharedStyles.label}>特殊需求</Text>
         <TextInput

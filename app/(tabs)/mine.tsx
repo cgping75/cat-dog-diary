@@ -200,6 +200,34 @@ export default function MineScreen() {
             <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
+          {/* Documents entry */}
+          <TouchableOpacity
+            style={styles.settingsRow}
+            onPress={() => router.push('/documents')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.settingsIcon, { backgroundColor: '#E8F5E9' }]}>
+              <MaterialCommunityIcons name="file-certificate" size={20} color="#66BB6A" />
+            </View>
+            <Text style={styles.settingsText}>证件管理</Text>
+            <Text style={styles.settingsHint}>登记证 · 免疫证明 · 其他证件</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          {/* Vaccine archive entry */}
+          <TouchableOpacity
+            style={styles.settingsRow}
+            onPress={() => router.push('/vaccine-archive')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.settingsIcon, { backgroundColor: '#E3F2FD' }]}>
+              <MaterialCommunityIcons name="needle" size={20} color="#42A5F5" />
+            </View>
+            <Text style={styles.settingsText}>疫苗档案</Text>
+            <Text style={styles.settingsHint}>接种记录 · 接种时间线 · 下次提醒</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
           {/* Calendar settings entry */}
           <TouchableOpacity
             style={styles.settingsRow}

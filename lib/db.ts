@@ -123,6 +123,22 @@ const initDB = () => {
     );
   `);
 
+  // Documents table
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pet_id INTEGER NOT NULL,
+      doc_type TEXT NOT NULL,
+      name TEXT NOT NULL,
+      note TEXT,
+      image_uri TEXT,
+      issue_date TEXT,
+      expiry_date TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (pet_id) REFERENCES pets(id)
+    );
+  `);
+
   // Migration: drop old checkins table if exists
   try {
     db.execSync('DROP TABLE IF EXISTS checkins');

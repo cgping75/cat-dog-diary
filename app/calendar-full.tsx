@@ -4,14 +4,38 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository, PetRecord } from '@/lib/recordRepository';
-import { moodRepository } from '@/lib/moodRepository';
-import { checkinRepository } from '@/lib/checkinRepository';
 import { todoRepository, TodoItem } from '@/lib/todoRepository';
+import { documentRepository } from '@/lib/documentRepository';
 import { colors, borderRadius, spacing } from '@/lib/theme';
 import { formatDateStr } from '@/lib/calendarUtils';
 import { daysBetween, VACCINE_INTERVAL_DAYS, DEWORM_INTERVAL_DAYS, CHECKUP_INTERVAL_DAYS, DENTAL_INTERVAL_DAYS, BATH_INTERVAL_DAYS, GROOMING_INTERVAL_DAYS, NAIL_INTERVAL_DAYS } from '@/lib/dateUtils';
 import Card from '@/components/Card';
 import Calendar from '@/components/Calendar';
+
+type CalendarEvent = {
+  id: string;
+  type: 'record' | 'todo' | 'reminder';
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  color: string;
+  title: string;
+  detail: string;
+};
+
+const recordTypeIcons: Record<string, { icon: keyof typeof MaterialCommunityIcons.glyphMap; color: string; label: string }> = {
+  vaccine: { icon: 'needle', color: colors.vaccine, label: '疫苗' },
+  deworm: { icon: 'pill', color: colors.deworm, label: '驱虫' },
+  weight: { icon: 'scale-bathroom', color: colors.weight, label: '体重' },
+  issue: { icon: 'alert-circle-outline', color: colors.issue, label: '问题' },
+  feeding: { icon: 'food-outline', color: colors.feeding, label: '喂食' },
+  checkup: { icon: 'stethoscope', color: colors.checkup, label: '体检' },
+  dental: { icon: 'tooth-outline', color: colors.dental, label: '洁牙' },
+  bath: { icon: 'shower-head', color: colors.bath, label: '洗澡' },
+  grooming: { icon: 'content-cut', color: colors.grooming, label: '毛发修剪' },
+  nail: { icon: 'hand-back-right-outline', color: colors.nail, label: '剪指甲' },
+  period: { icon: 'water', color: colors.period, label: '经期' },
+  heat: { icon: 'heart-pulse', color: colors.heat, label: '发情期' },
+  body_size: { icon: 'human', color: colors.bodySize, label: '体型' },
+};
 
 export default function CalendarFullScreen() {
   const params = useLocalSearchParams<{ petId?: string }>();
@@ -22,11 +46,8 @@ export default function CalendarFullScreen() {
   const [markedDates, setMarkedDates] = useState<{ [d: string]: { dotColor?: string; marked?: boolean } }>({});
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
-  const [dayRecords, setDayRecords] = useState<PetRecord[]>([]);
+  const [dayEvents, setDayEvents] = useState<CalendarEvent[]>([]);
   const [dayTodos, setDayTodos] = useState<TodoItem[]>([]);
-  const [upcomingTodos, setUpcomingTodos] = useState<TodoItem[]>([]);
-  const [overdueTodos, setOverdueTodos] = useState<TodoItem[]>([]);
-  const [streak, setStreak] = useState(0);
   const [showAddTodo, setShowAddTodo] = useState(false);
   const [todoTitle, setTodoTitle] = useState('');
   const [reminders, setReminders] = useState<{ text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[]>([]);
@@ -53,36 +74,98 @@ export default function CalendarFullScreen() {
 
   const loadCalendarData = useCallback((year: number, month: number) => {
     const recordDates = recordRepository.getRecordDatesInMonth(petId, year, month);
-    const moodDates = moodRepository.getMoodDatesInMonth(petId, year, month);
     const todoDates = todoRepository.getTodoDatesInMonth(petId, year, month);
 
     const marks: { [d: string]: { dotColor?: string; marked?: boolean } } = {};
     recordDates.forEach((d) => { marks[d] = { dotColor: colors.primary, marked: true }; });
-    moodDates.forEach((d) => { marks[d] = { dotColor: colors.secondary, marked: true }; });
-    todoDates.forEach((_, d) => { marks[d] = { dotColor: colors.warning, marked: true }; });
+    todoDates.forEach((_count, d) => { marks[d] = { dotColor: colors.warning, marked: true }; });
+
+    // 标记周期提醒到期日
+    const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const periodicChecks: { type: string; interval: number; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
+      { type: 'vaccine', interval: VACCINE_INTERVAL_DAYS, icon: 'needle' },
+      { type: 'deworm', interval: DEWORM_INTERVAL_DAYS, icon: 'pill' },
+      { type: 'checkup', interval: CHECKUP_INTERVAL_DAYS, icon: 'stethoscope' },
+      { type: 'dental', interval: DENTAL_INTERVAL_DAYS, icon: 'tooth-outline' },
+      { type: 'bath', interval: BATH_INTERVAL_DAYS, icon: 'shower-head' },
+      { type: 'grooming', interval: GROOMING_INTERVAL_DAYS, icon: 'content-cut' },
+      { type: 'nail', interval: NAIL_INTERVAL_DAYS, icon: 'hand-back-right-outline' },
+    ];
+    for (const check of periodicChecks) {
+      const recs = recordRepository.getByPetIdAndType(petId, check.type as any);
+      if (recs.length > 0) {
+        const lastDate = new Date(recs[0].recorded_at);
+        const nextDate = new Date(lastDate);
+        nextDate.setDate(nextDate.getDate() + check.interval);
+        const nextStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`;
+        if (nextStr.startsWith(prefix)) {
+          marks[nextStr] = { dotColor: '#FF7043', marked: true };
+        }
+      }
+    }
+
     setMarkedDates(marks);
   }, [petId]);
 
   const loadDayData = useCallback((dateStr: string) => {
-    setDayRecords(recordRepository.getByPetIdAndDate(petId, dateStr));
-    setDayTodos(todoRepository.getByDate(petId, dateStr));
-  }, [petId]);
+    // Build events list
+    const records = recordRepository.getByPetIdAndDate(petId, dateStr);
+    const todos = todoRepository.getByDate(petId, dateStr);
 
-  const loadTodos = useCallback(() => {
-    setUpcomingTodos(todoRepository.getUpcoming(petId, 5));
-    setOverdueTodos(todoRepository.getOverdue(petId));
+    const events: CalendarEvent[] = records.map((r) => {
+      const meta = recordTypeIcons[r.record_type] || { icon: 'notebook-outline' as const, color: colors.primary, label: r.record_type };
+      return {
+        id: `record-${r.id}`,
+        type: 'record' as const,
+        icon: meta.icon,
+        color: meta.color,
+        title: r.title,
+        detail: [meta.label, r.value_text].filter(Boolean).join(' · '),
+      };
+    });
+
+    // 检查该日期是否有周期提醒到期
+    const periodicChecks: { type: string; label: string; interval: number; icon: keyof typeof MaterialCommunityIcons.glyphMap; color: string }[] = [
+      { type: 'vaccine', label: '疫苗到期', interval: VACCINE_INTERVAL_DAYS, icon: 'needle', color: colors.vaccine },
+      { type: 'deworm', label: '驱虫到期', interval: DEWORM_INTERVAL_DAYS, icon: 'pill', color: colors.deworm },
+      { type: 'checkup', label: '体检到期', interval: CHECKUP_INTERVAL_DAYS, icon: 'stethoscope', color: colors.checkup },
+      { type: 'dental', label: '洁牙到期', interval: DENTAL_INTERVAL_DAYS, icon: 'tooth-outline', color: colors.dental },
+      { type: 'bath', label: '洗澡到期', interval: BATH_INTERVAL_DAYS, icon: 'shower-head', color: colors.bath },
+      { type: 'grooming', label: '毛发修剪到期', interval: GROOMING_INTERVAL_DAYS, icon: 'content-cut', color: colors.grooming },
+      { type: 'nail', label: '剪指甲到期', interval: NAIL_INTERVAL_DAYS, icon: 'hand-back-right-outline', color: colors.nail },
+    ];
+    for (const check of periodicChecks) {
+      const recs = recordRepository.getByPetIdAndType(petId, check.type as any);
+      if (recs.length > 0) {
+        const lastDate = new Date(recs[0].recorded_at);
+        const nextDate = new Date(lastDate);
+        nextDate.setDate(nextDate.getDate() + check.interval);
+        const nextStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`;
+        if (nextStr === dateStr) {
+          events.push({
+            id: `reminder-${check.type}`,
+            type: 'reminder',
+            icon: check.icon,
+            color: '#FF7043',
+            title: check.label,
+            detail: `上次：${recs[0].recorded_at.slice(0, 10)}`,
+          });
+        }
+      }
+    }
+
+    setDayEvents(events);
+    setDayTodos(todos);
   }, [petId]);
 
   const loadAll = useCallback(() => {
     if (!petId) return;
     const p = petRepository.getById(petId);
     setPet(p);
-    setStreak(checkinRepository.getStreak(petId));
     loadCalendarData(calYear, calMonth);
     loadDayData(selectedDate);
-    loadTodos();
     buildReminders();
-  }, [petId, calYear, calMonth, selectedDate, loadCalendarData, loadDayData, loadTodos, buildReminders]);
+  }, [petId, calYear, calMonth, selectedDate, loadCalendarData, loadDayData, buildReminders]);
 
   useFocusEffect(loadAll);
 
@@ -97,25 +180,18 @@ export default function CalendarFullScreen() {
     loadCalendarData(year, month);
   };
 
-  const handleCheckin = () => {
-    // Navigate back to today for checkin (checkin is now item-based in today page)
-    router.back();
-  };
-
   const handleAddTodo = () => {
     if (!todoTitle.trim()) return;
     todoRepository.save(petId, { title: todoTitle.trim(), dueDate: selectedDate });
     setTodoTitle('');
     setShowAddTodo(false);
     loadDayData(selectedDate);
-    loadTodos();
     loadCalendarData(calYear, calMonth);
   };
 
   const handleToggleTodo = (id: number) => {
     todoRepository.toggleDone(id);
     loadDayData(selectedDate);
-    loadTodos();
     loadCalendarData(calYear, calMonth);
   };
 
@@ -125,7 +201,6 @@ export default function CalendarFullScreen() {
       { text: '删除', style: 'destructive', onPress: () => {
         todoRepository.delete(id);
         loadDayData(selectedDate);
-        loadTodos();
         loadCalendarData(calYear, calMonth);
       }},
     ]);
@@ -142,21 +217,7 @@ export default function CalendarFullScreen() {
           <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{pet?.name}的日历</Text>
-        <TouchableOpacity
-          style={styles.checkinBtn}
-          onPress={handleCheckin}
-        >
-          <MaterialCommunityIcons name="calendar-check" size={18} color={colors.primary} />
-          <Text style={styles.checkinText}>去打卡</Text>
-        </TouchableOpacity>
       </View>
-
-      {streak > 0 && (
-        <View style={styles.streakBar}>
-          <MaterialCommunityIcons name="fire" size={20} color={colors.warning} />
-          <Text style={styles.streakText}>连续打卡 {streak} 天</Text>
-        </View>
-      )}
 
       {/* Calendar */}
       <Calendar
@@ -179,50 +240,44 @@ export default function CalendarFullScreen() {
         </Card>
       )}
 
-      {/* Overdue + Upcoming Todos */}
-      {overdueTodos.length > 0 && (
-        <Card style={{ marginTop: spacing.md }}>
-          <Text style={styles.sectionLabel}>已过期待办</Text>
-          {overdueTodos.map((t) => (
-            <TouchableOpacity key={t.id} style={styles.todoRow} onPress={() => handleToggleTodo(t.id)} onLongPress={() => handleDeleteTodo(t.id)}>
-              <MaterialCommunityIcons name="checkbox-blank-circle-outline" size={20} color={colors.error} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.todoTitle, { color: colors.error }]}>{t.title}</Text>
-                <Text style={styles.todoDate}>{t.due_date}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </Card>
-      )}
-
       {/* Selected date detail */}
       <Card style={{ marginTop: spacing.md }}>
         <Text style={styles.sectionLabel}>
-          {isToday ? '今日详情' : `${selectedDate} 详情`}
+          {isToday ? '今日事件' : `${selectedDate} 事件`}
         </Text>
 
-        {/* Day records */}
-        {dayRecords.length > 0 && (
+        {/* Events */}
+        {dayEvents.length > 0 && (
           <View style={styles.daySection}>
             <Text style={styles.daySectionTitle}>记录</Text>
-            {dayRecords.map((r) => (
+            {dayEvents.map((e) => (
               <TouchableOpacity
-                key={r.id}
-                style={styles.recordRow}
-                onPress={() => router.push({ pathname: '/add-record', params: { petId: String(r.pet_id), recordId: String(r.id) } })}
+                key={e.id}
+                style={styles.eventRow}
+                onPress={() => {
+                  if (e.type === 'record') {
+                    const recordId = e.id.replace('record-', '');
+                    router.push({ pathname: '/add-record', params: { petId: String(petId), recordId } });
+                  } else if (e.type === 'reminder') {
+                    const recordType = e.id.replace('reminder-', '');
+                    router.push({ pathname: '/add-record', params: { petId: String(petId), recordType } });
+                  }
+                }}
                 activeOpacity={0.7}
               >
-                <MaterialCommunityIcons name="circle-small" size={20} color={colors.primary} />
+                <View style={[styles.eventIconBg, { backgroundColor: e.color + '18' }]}>
+                  <MaterialCommunityIcons name={e.icon} size={16} color={e.color} />
+                </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.recordTitle}>{r.title}</Text>
-                  <Text style={styles.recordMeta}>{r.value_text ? `${r.value_text} · ` : ''}{r.record_type}</Text>
+                  <Text style={styles.eventTitle}>{e.title}</Text>
+                  <Text style={styles.eventDetail}>{e.detail}</Text>
                 </View>
               </TouchableOpacity>
             ))}
           </View>
         )}
 
-        {/* Day todos */}
+        {/* Todos */}
         <View style={styles.daySection}>
           <View style={styles.todoHeader}>
             <Text style={styles.daySectionTitle}>待办事项</Text>
@@ -260,46 +315,20 @@ export default function CalendarFullScreen() {
           )}
         </View>
 
-        {dayRecords.length === 0 && dayTodos.length === 0 && !showAddTodo && (
-          <Text style={styles.emptyHint}>{isToday ? '今天暂无记录和待办' : '该日暂无记录和待办'}</Text>
+        {dayEvents.length === 0 && dayTodos.length === 0 && !showAddTodo && (
+          <Text style={styles.emptyHint}>{isToday ? '今天暂无事件' : '该日暂无事件'}</Text>
         )}
       </Card>
 
-      {/* Upcoming todos */}
-      {upcomingTodos.length > 0 && (
-        <Card style={{ marginTop: spacing.md }}>
-          <Text style={styles.sectionLabel}>近期计划</Text>
-          {upcomingTodos.map((t) => (
-            <TouchableOpacity key={t.id} style={styles.todoRow} onPress={() => handleToggleTodo(t.id)} onLongPress={() => handleDeleteTodo(t.id)}>
-              <MaterialCommunityIcons name="checkbox-blank-circle-outline" size={20} color={colors.primary} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.todoTitle}>{t.title}</Text>
-                <Text style={styles.todoDate}>{t.due_date}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </Card>
-      )}
-
-      {/* Bottom action buttons */}
-      <View style={styles.actionRow}>
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => router.push({ pathname: '/add-record', params: { petId: String(petId), recordType: 'body_size' } })}
-          activeOpacity={0.8}
-        >
-          <MaterialCommunityIcons name="human" size={20} color={colors.card} />
-          <Text style={styles.actionBtnText}>记录体型</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: colors.secondary }]}
-          onPress={() => setShowAddTodo(true)}
-          activeOpacity={0.8}
-        >
-          <MaterialCommunityIcons name="playlist-plus" size={20} color={colors.card} />
-          <Text style={styles.actionBtnText}>添加待办</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Bottom action */}
+      <TouchableOpacity
+        style={styles.actionBtn}
+        onPress={() => setShowAddTodo(true)}
+        activeOpacity={0.8}
+      >
+        <MaterialCommunityIcons name="playlist-plus" size={20} color={colors.card} />
+        <Text style={styles.actionBtnText}>添加待办</Text>
+      </TouchableOpacity>
     </ScrollView>
     </TouchableWithoutFeedback>
   );
@@ -311,29 +340,19 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   backBtn: { padding: spacing.xs },
   headerTitle: { flex: 1, fontSize: 18, fontWeight: '800', color: colors.text },
-  checkinBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full, borderWidth: 1.5,
-    borderColor: colors.primary, backgroundColor: colors.card,
-  },
-  checkinText: { fontSize: 13, fontWeight: '700', color: colors.primary },
-  streakBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: colors.warning + '15', borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  streakText: { fontSize: 14, fontWeight: '700', color: colors.warning },
   sectionLabel: { fontSize: 15, fontWeight: '800', color: colors.primary, marginBottom: spacing.sm },
   reminderCard: { marginTop: spacing.md, backgroundColor: colors.reminderBg },
   reminderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
   reminderText: { fontSize: 13, color: colors.text, fontWeight: '600' },
   daySection: { marginTop: spacing.sm },
   daySectionTitle: { fontSize: 13, fontWeight: '700', color: colors.textSecondary, marginBottom: spacing.xs },
-  recordRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 4 },
-  recordTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
-  recordMeta: { fontSize: 11, color: colors.textSecondary },
+  eventRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
+  eventIconBg: {
+    width: 30, height: 30, borderRadius: 15,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  eventTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
+  eventDetail: { fontSize: 11, color: colors.textSecondary, marginTop: 1 },
   todoHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
   addTodoRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
   todoInput: {
@@ -348,14 +367,12 @@ const styles = StyleSheet.create({
   todoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 4 },
   todoTitle: { fontSize: 14, fontWeight: '600', color: colors.text, flex: 1 },
   todoDone: { textDecorationLine: 'line-through', color: colors.textSecondary },
-  todoDate: { fontSize: 11, color: colors.textSecondary },
   emptyHint: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', paddingVertical: spacing.sm },
-  actionRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
   actionBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
-    backgroundColor: colors.primary, borderRadius: borderRadius.lg,
-    paddingVertical: spacing.md,
-    shadowColor: '#FF7EB3', shadowOffset: { width: 0, height: 4 },
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+    backgroundColor: colors.secondary, borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md, marginTop: spacing.lg,
+    shadowColor: '#A78BFA', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
   },
   actionBtnText: { color: colors.card, fontSize: 15, fontWeight: '700' },

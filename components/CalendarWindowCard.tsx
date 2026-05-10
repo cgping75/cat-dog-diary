@@ -1,16 +1,19 @@
 import { View, Text, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '@/lib/theme';
-import { CheckinItemWithStatus } from '@/lib/checkinRepository';
 import { TodoItem } from '@/lib/todoRepository';
 import { Pet } from '@/lib/petRepository';
+import { Recipe } from '@/lib/recipeData';
 
 const weekDayNames = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
 
 type CalendarWindowCardProps = {
   pet: Pet | null;
   streak: number;
-  checkinItems: CheckinItemWithStatus[];
+  recipes: Recipe[];
+  lifeStageName: string;
+  healthLabel: string;
+  healthColor: string;
   todayTodos: TodoItem[];
   nextTodo: TodoItem | null;
   weatherLabel: string;
@@ -21,13 +24,16 @@ type CalendarWindowCardProps = {
   suggestionContent: string;
   suggestionIcon: string;
   customBgUri?: string;
-  onToggleCheckin: (itemId: number) => void;
+  onPressRecipe: (recipe: Recipe) => void;
 };
 
 export default function CalendarWindowCard({
   pet,
   streak,
-  checkinItems,
+  recipes,
+  lifeStageName,
+  healthLabel,
+  healthColor,
   todayTodos,
   nextTodo,
   weatherLabel,
@@ -38,7 +44,7 @@ export default function CalendarWindowCard({
   suggestionContent,
   suggestionIcon,
   customBgUri,
-  onToggleCheckin,
+  onPressRecipe,
 }: CalendarWindowCardProps) {
   const now = new Date();
   const day = now.getDate();
@@ -46,9 +52,7 @@ export default function CalendarWindowCard({
   const year = now.getFullYear();
   const weekday = weekDayNames[now.getDay()];
   const undoneToday = todayTodos.filter((t) => !t.is_done);
-  const systemItems = checkinItems.filter((i) => i.is_system);
-  const customItems = checkinItems.filter((i) => !i.is_system);
-  const allSystemDone = systemItems.length > 0 && systemItems.every((i) => i.done);
+  const streakAllDone = streak > 0;
 
   const hasBg = !!customBgUri;
 
@@ -72,10 +76,22 @@ export default function CalendarWindowCard({
               {pet.age_text ? ` · ${pet.age_text}` : ''}
               {pet.weight ? ` · ${pet.weight}kg` : ''}
             </Text>
+            <View style={styles.badgeRow}>
+              {lifeStageName ? (
+                <View style={styles.lifeStageBadge}>
+                  <Text style={styles.lifeStageText}>{lifeStageName}</Text>
+                </View>
+              ) : null}
+              {healthLabel ? (
+                <View style={[styles.healthBadge, { backgroundColor: healthColor + '18' }]}>
+                  <Text style={[styles.healthText, { color: healthColor }]}>{healthLabel}</Text>
+                </View>
+              ) : null}
+            </View>
           </View>
-          <View style={[styles.streakBadge, allSystemDone && styles.streakBadgeDone]}>
-            <MaterialCommunityIcons name="fire" size={18} color={allSystemDone ? '#FFD700' : '#C4A882'} />
-            <Text style={[styles.streakNum, allSystemDone && { color: '#FFD700' }]}>{streak}</Text>
+          <View style={[styles.streakBadge, streakAllDone && styles.streakBadgeDone]}>
+            <MaterialCommunityIcons name="fire" size={18} color={streakAllDone ? '#FFD700' : '#C4A882'} />
+            <Text style={[styles.streakNum, streakAllDone && { color: '#FFD700' }]}>{streak}</Text>
           </View>
         </View>
       )}
@@ -91,43 +107,31 @@ export default function CalendarWindowCard({
 
         <View style={styles.divider} />
 
-        <View style={styles.checkinSection}>
-          <Text style={styles.checkinTitle}>今日打卡</Text>
-          {systemItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.checkinItemRow}
-              onPress={() => onToggleCheckin(item.id)}
-              activeOpacity={0.6}
-            >
-              <MaterialCommunityIcons
-                name={item.done ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
-                size={24}
-                color={item.done ? colors.success : '#C4A882'}
-              />
-              <Text style={[styles.checkinItemLabel, item.done && styles.checkinItemDone]}>
-                {item.label}
-              </Text>
-              <Text style={styles.systemTag}>固定</Text>
-            </TouchableOpacity>
-          ))}
-          {customItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.checkinItemRow}
-              onPress={() => onToggleCheckin(item.id)}
-              activeOpacity={0.6}
-            >
-              <MaterialCommunityIcons
-                name={item.done ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
-                size={24}
-                color={item.done ? colors.success : '#C4A882'}
-              />
-              <Text style={[styles.checkinItemLabel, item.done && styles.checkinItemDone]}>
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.recipeSection}>
+          <Text style={styles.recipeTitle}>今日推荐食谱</Text>
+          {recipes.length === 0 ? (
+            <Text style={styles.recipeEmpty}>添加宠物后获取推荐</Text>
+          ) : (
+            recipes.map((recipe) => (
+              <TouchableOpacity
+                key={recipe.id}
+                style={styles.recipeItemRow}
+                onPress={() => onPressRecipe(recipe)}
+                activeOpacity={0.6}
+              >
+                <MaterialCommunityIcons
+                  name={recipe.icon as keyof typeof MaterialCommunityIcons.glyphMap}
+                  size={22}
+                  color="#FF9A6C"
+                />
+                <View style={styles.recipeItemContent}>
+                  <Text style={styles.recipeItemName}>{recipe.name}</Text>
+                  <Text style={styles.recipeItemDesc} numberOfLines={1}>{recipe.description}</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#CCC" />
+              </TouchableOpacity>
+            ))
+          )}
         </View>
       </View>
 
@@ -264,6 +268,33 @@ const styles = StyleSheet.create({
   petInfo: { flex: 1 },
   petName: { fontSize: 20, fontWeight: '800', color: '#333333' },
   petMeta: { fontSize: 13, color: '#888888', marginTop: 3 },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 5,
+  },
+  lifeStageBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#EDE7F6',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  lifeStageText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7E57C2',
+  },
+  healthBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  healthText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -320,35 +351,37 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     marginHorizontal: 16,
   },
-  checkinSection: {
+  recipeSection: {
     flex: 1,
-    gap: 12,
+    gap: 10,
   },
-  checkinTitle: {
+  recipeTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: '#666666',
     marginBottom: 4,
   },
-  checkinItemRow: {
+  recipeEmpty: {
+    fontSize: 13,
+    color: '#BBBBBB',
+  },
+  recipeItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  checkinItemLabel: {
+  recipeItemContent: {
+    flex: 1,
+  },
+  recipeItemName: {
     fontSize: 15,
     fontWeight: '600',
     color: '#444444',
-    flex: 1,
   },
-  checkinItemDone: {
-    color: colors.success,
-    textDecorationLine: 'line-through',
-  },
-  systemTag: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#BBBBBB',
+  recipeItemDesc: {
+    fontSize: 12,
+    color: '#999999',
+    marginTop: 2,
   },
 
   // Todos

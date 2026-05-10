@@ -4,7 +4,9 @@ import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { petRepository, Pet } from '@/lib/petRepository';
 import { recordRepository, PetRecord } from '@/lib/recordRepository';
-import { checkinRepository, CheckinItemWithStatus } from '@/lib/checkinRepository';
+import { getRecommendedRecipes, Recipe } from '@/lib/recipeData';
+import { getLifeStage, parseAgeMonths } from '@/lib/lifeStage';
+import { assessHealth } from '@/lib/healthAssessment';
 import { todoRepository, TodoItem } from '@/lib/todoRepository';
 import { colors, borderRadius, spacing } from '@/lib/theme';
 import { daysBetween, VACCINE_INTERVAL_DAYS, DEWORM_INTERVAL_DAYS, CHECKUP_INTERVAL_DAYS, DENTAL_INTERVAL_DAYS, BATH_INTERVAL_DAYS, GROOMING_INTERVAL_DAYS, NAIL_INTERVAL_DAYS } from '@/lib/dateUtils';
@@ -23,7 +25,10 @@ export default function TodayScreen() {
   const [recentRecords, setRecentRecords] = useState<PetRecord[]>([]);
   const [reminders, setReminders] = useState<{ text: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; lastDate: string; daysOver: number }[]>([]);
   const [streak, setStreak] = useState(0);
-  const [checkinItems, setCheckinItems] = useState<CheckinItemWithStatus[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [lifeStageName, setLifeStageName] = useState('');
+  const [healthLabel, setHealthLabel] = useState('');
+  const [healthColor, setHealthColor] = useState('');
   const [todayTodos, setTodayTodos] = useState<TodoItem[]>([]);
   const [nextTodo, setNextTodo] = useState<TodoItem | null>(null);
   const [calendarBgUri, setCalendarBgUri] = useState<string>('');
@@ -40,7 +45,10 @@ export default function TodayScreen() {
       setRecentRecords([]);
       setReminders([]);
       setStreak(0);
-      setCheckinItems([]);
+      setRecipes([]);
+      setLifeStageName('');
+      setHealthLabel('');
+      setHealthColor('');
       setTodayTodos([]);
       setNextTodo(null);
       return;
@@ -53,8 +61,20 @@ export default function TodayScreen() {
     const pet = petRepository.getById(targetId);
     setCurrentPet(pet);
     setRecentRecords(recordRepository.getRecentByPetId(targetId, 3));
-    setStreak(checkinRepository.getStreak(targetId));
-    setCheckinItems(checkinRepository.getItemsWithStatus(targetId));
+    setStreak(0);
+    setRecipes(getRecommendedRecipes(pet));
+    if (pet) {
+      const ageMonths = parseAgeMonths(pet.age_text ?? '');
+      const stage = getLifeStage((pet.pet_type as 'cat' | 'dog') || 'cat', ageMonths);
+      setLifeStageName(stage?.name || '');
+      const h = assessHealth(pet);
+      setHealthLabel(h?.label || '');
+      setHealthColor(h?.color || '');
+    } else {
+      setLifeStageName('');
+      setHealthLabel('');
+      setHealthColor('');
+    }
 
     const today = formatDateStr(new Date());
     setTodayTodos(todoRepository.getByDate(targetId, today));
@@ -94,12 +114,6 @@ export default function TodayScreen() {
   }, [currentPetId]);
 
   useFocusEffect(loadData);
-
-  const handleToggleCheckin = (itemId: number) => {
-    checkinRepository.toggleCheckin(currentPetId, itemId);
-    setCheckinItems(checkinRepository.getItemsWithStatus(currentPetId));
-    setStreak(checkinRepository.getStreak(currentPetId));
-  };
 
   const handlePetSelect = (id: number) => {
     setCurrentPetId(id);
@@ -152,7 +166,10 @@ export default function TodayScreen() {
           <CalendarWindowCard
             pet={currentPet}
             streak={streak}
-            checkinItems={checkinItems}
+            recipes={recipes}
+            lifeStageName={lifeStageName}
+            healthLabel={healthLabel}
+            healthColor={healthColor}
             todayTodos={todayTodos}
             nextTodo={nextTodo}
             weatherLabel={weather.label}
@@ -163,7 +180,7 @@ export default function TodayScreen() {
             suggestionContent={suggestion.content}
             suggestionIcon={suggestion.icon}
             customBgUri={calendarBgUri}
-            onToggleCheckin={handleToggleCheckin}
+            onPressRecipe={(recipe) => router.push({ pathname: '/recipe-detail', params: { recipeId: recipe.id } })}
           />
         </TouchableOpacity>
 
@@ -192,36 +209,22 @@ export default function TodayScreen() {
           <QuickEntry icon="pill" label="驱虫" color={colors.deworm}
             onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'deworm' } })}
             style={{ flex: 1 }} />
-          <QuickEntry icon="scale-bathroom" label="体重" color={colors.weight}
-            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'weight' } })}
+          <QuickEntry icon="shower-head" label="护理" color={colors.bath}
+            onPress={() => router.push({ pathname: '/care-record', params: { petId: String(currentPetId) } })}
             style={{ flex: 1 }} />
-          <QuickEntry icon="shower-head" label="洗澡" color={colors.bath}
-            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'bath' } })}
+          <QuickEntry icon="file-certificate" label="证件" color={colors.checkup}
+            onPress={() => router.push({ pathname: '/documents', params: { petId: String(currentPetId) } })}
             style={{ flex: 1 }} />
         </View>
         <View style={[styles.quickGrid, { marginTop: spacing.sm }]}>
-          <QuickEntry icon="content-cut" label="毛发修剪" color={colors.grooming}
-            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'grooming' } })}
-            style={{ flex: 1 }} />
-          <QuickEntry icon="hand-back-right-outline" label="剪指甲" color={colors.nail}
-            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'nail' } })}
-            style={{ flex: 1 }} />
           <QuickEntry icon="water" label="经期" color={colors.period}
             onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'period' } })}
             style={{ flex: 1 }} />
           <QuickEntry icon="heart-pulse" label="发情期" color={colors.heat}
             onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'heat' } })}
             style={{ flex: 1 }} />
-        </View>
-        <View style={[styles.quickGrid, { marginTop: spacing.sm }]}>
-          <QuickEntry icon="human" label="体型" color={colors.bodySize}
-            onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'body_size' } })}
-            style={{ flex: 1 }} />
           <QuickEntry icon="alert-circle-outline" label="问题" color={colors.issue}
             onPress={() => router.push({ pathname: '/add-record', params: { petId: String(currentPetId), recordType: 'issue' } })}
-            style={{ flex: 1 }} />
-          <QuickEntry icon="emoticon-happy-outline" label="情绪" color={colors.secondary}
-            onPress={() => router.push({ pathname: '/mood-tracker', params: { petId: String(currentPetId) } })}
             style={{ flex: 1 }} />
           <View style={{ flex: 1 }} />
         </View>

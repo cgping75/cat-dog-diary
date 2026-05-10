@@ -71,7 +71,7 @@ export const todoRepository = {
     const db = getDB();
     const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
     const rows = db.getAllSync<{ due_date: string; cnt: number }>(
-      "SELECT due_date, COUNT(*) as cnt FROM todos WHERE pet_id = ? AND due_date LIKE ? AND is_done = 0 GROUP BY due_date",
+      "SELECT due_date, COUNT(*) as cnt FROM todos WHERE pet_id = ? AND due_date LIKE ? GROUP BY due_date",
       [petId, `${prefix}%`]
     );
     const map = new Map<string, number>();
